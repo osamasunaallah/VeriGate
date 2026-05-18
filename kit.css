@@ -1,0 +1,131 @@
+/* Verigate v3 — UI kit base. Dark professional theme. */
+@import url('./colors_and_type.css?v=22');
+
+*{ box-sizing: border-box; }
+html,body{
+  margin:0; padding:0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+html{ scroll-behavior: smooth; }
+body{ overflow-x: hidden; }
+img{ max-width:100%; display:block; }
+a{ color: inherit; text-decoration: none; }
+button{ font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+svg{ display: block; }
+:focus-visible{ outline: 2px solid var(--accent-2); outline-offset: 3px; border-radius: 6px; }
+
+/* =========================================================
+   AMBIENT BACKDROP — single fixed gradient, no animation.
+   This replaces the previous .blob + .grid-overlay + .scanlines
+   stack which was the source of the "laggy" background.
+   No filter:blur, no mix-blend-mode, no infinite keyframes.
+   ========================================================= */
+.ambient{
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    /* Cool blue-violet — kept as the dominant top note */
+    radial-gradient(1100px 700px at 88% -10%, rgba(124,138,255,.11), transparent 62%),
+    radial-gradient(1100px 700px at -8% 35%, rgba(167,139,250,.08), transparent 62%),
+    /* Phoenix gold — warm highlight on the lower-left */
+    radial-gradient(900px  640px at -5% 85%, rgba(240,179,117,.09), transparent 60%),
+    /* Phoenix ember — a single subtle warm pool down-right */
+    radial-gradient(800px  560px at 95% 105%, rgba(225,104,66,.06), transparent 62%),
+    /* Phoenix teal jewel — tiny accent up-right balances the warms */
+    radial-gradient(700px  500px at 105% 12%, rgba(31,182,164,.05), transparent 60%),
+    var(--bg);
+}
+/* Empty elements left in place for backward compatibility — kept invisible
+   so existing JSX trees keep working but cost nothing. */
+.blob, .blob-a, .blob-b, .blob-c{ display: none; }
+.grid-overlay{ display: none; }
+.scanlines{ display: none; }
+
+main{ position: relative; z-index: 1; }
+.section{ position: relative; width: min(1280px, calc(100% - 40px)); margin: 0 auto; padding: var(--section-pad) 0; }
+.section.tight{ padding: var(--section-pad-tight) 0; }
+.section-head{ max-width: 920px; margin-bottom: 56px; }
+.section-head.center{ margin-left:auto; margin-right:auto; text-align:center; }
+.section-head .kicker{ margin-bottom: 6px; }
+
+/* =========================================================
+   GLOW DIVIDER — tiny, static, no animation
+   ========================================================= */
+.div-glow{
+  position: relative; height: 1px;
+  width: min(1280px, calc(100% - 40px));
+  margin: 0 auto;
+  background: linear-gradient(90deg, transparent 0%, rgba(167,139,250,.45) 50%, transparent 100%);
+  z-index: 1;
+}
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+.btn{
+  display:inline-flex; align-items:center; gap:10px;
+  padding: 13px 22px;
+  border-radius: 999px;
+  font-weight:600;
+  font-size:15px;
+  transition: transform .25s var(--easing-spring), box-shadow .25s var(--easing), background .2s var(--easing), border-color .2s var(--easing);
+  white-space: nowrap;
+  will-change: transform;
+}
+.btn.big{ padding: 16px 26px; font-size:16px; }
+.btn.primary{
+  color: #06091A;
+  background: linear-gradient(180deg, #B3BFFF, #6E7CF5);
+  box-shadow: 0 12px 32px rgba(124,138,255,.32), inset 0 1px 0 rgba(255,255,255,.4);
+}
+.btn.primary:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px rgba(124,138,255,.4), inset 0 1px 0 rgba(255,255,255,.5);
+}
+.btn.ghost{
+  color: var(--text);
+  border:1px solid var(--line-2);
+  background: rgba(255,255,255,.03);
+}
+.btn.ghost:hover{
+  border-color: rgba(255,255,255,.28);
+  background: rgba(255,255,255,.06);
+  transform: translateY(-2px);
+}
+
+/* =========================================================
+   SCROLL REVEAL — slide-up + scale only. No blur (heavier on GPU).
+   ========================================================= */
+.reveal{
+  opacity: 0;
+  transform: translate3d(0, 24px, 0);
+  transition:
+    opacity .9s var(--easing-out),
+    transform .9s var(--easing-out);
+  will-change: opacity, transform;
+}
+.reveal.in{
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+.reveal.delay-1{ transition-delay: .08s; }
+.reveal.delay-2{ transition-delay: .16s; }
+.reveal.delay-3{ transition-delay: .24s; }
+.reveal.delay-4{ transition-delay: .32s; }
+.reveal.delay-5{ transition-delay: .40s; }
+
+.reveal-left{ transform: translate3d(-24px, 0, 0); }
+.reveal-left.in{ transform: translate3d(0, 0, 0); }
+.reveal-right{ transform: translate3d(24px, 0, 0); }
+.reveal-right.in{ transform: translate3d(0, 0, 0); }
+
+::selection{ background: rgba(124,138,255,.4); color: #fff; }
+
+@media (prefers-reduced-motion: reduce){
+  .reveal, .reveal-left, .reveal-right{
+    opacity: 1; transform: none; transition: none;
+  }
+  *{ animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

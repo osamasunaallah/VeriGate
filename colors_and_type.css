@@ -1,0 +1,233 @@
+/* =========================================================
+   Verigate v3 — Dark Professional Theme
+   ---------------------------------------------------------
+   Deep navy base, soft blue-violet primary, lavender secondary.
+   Tuned for engineering credibility: low saturation, premium
+   contrast, type rhythm carried across the whole page.
+   ========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root{
+  /* ---------- SURFACES ---------- */
+  --bg:        #0A0C16;          /* deep navy-black, slight purple cast */
+  --bg-2:      #0E1124;
+  --bg-elev:   #14172B;
+  --surface:   #181B2F;          /* card surface */
+  --surface-2: #1F2340;          /* nested / hover */
+  --surface-3: #262B4A;
+
+  /* Lines */
+  --line:      rgba(255,255,255,0.07);
+  --line-2:    rgba(255,255,255,0.14);
+  --line-3:    rgba(167,139,250,0.30);   /* lavender-tinted */
+  --line-ok:   rgba(126,227,181,0.28);
+
+  /* Foreground — cool off-white */
+  --text:      #E8EAF4;
+  --text-2:    #C5C9DF;
+  --muted:     #8A8FA8;
+  --muted-2:   #5C617A;
+
+  /* Accent — soft blue-violet (cool side, kept) */
+  --accent:    #7C8AFF;
+  --accent-2:  #A78BFA;          /* lavender */
+  --accent-3:  #4F5BD5;          /* deeper, for gradient floors */
+  /* Phoenix-inspired warm accents — used sparingly for highlights only */
+  --accent-warm: #F0B375;        /* warm gold */
+  --accent-fire: #E16842;        /* phoenix ember orange-red */
+  --accent-jewel: #1FB6A4;       /* teal/emerald jewel (phoenix breast) */
+
+  /* Approved state — soft mint, premium not neon */
+  --ok:        #7EE3B5;
+  --ok-2:      #B0F2D2;
+  --ok-3:      #3FAA7E;
+
+  /* Semantic */
+  --warn:      #F2C770;
+  --err:       #FF8B8B;
+
+  /* ---------- RADII ---------- */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  --r-xl: 32px;
+  --r-2xl: 48px;
+  --r-pill: 999px;
+
+  /* ---------- ELEVATION ---------- */
+  --shadow-sm: 0 6px 24px rgba(0,0,0,.25);
+  --shadow-md: 0 18px 40px rgba(0,0,0,.35);
+  --shadow-lg: 0 36px 80px rgba(0,0,0,.5);
+  --shadow-xl: 0 60px 160px rgba(0,0,0,.65);
+  --glow-accent:      0 14px 40px rgba(124,138,255,.32);
+  --glow-accent-soft: 0 8px 24px rgba(124,138,255,.20);
+  --glow-violet:      0 14px 40px rgba(167,139,250,.30);
+  --glow-ok:          0 14px 40px rgba(126,227,181,.28);
+  --inner-hi:         inset 0 1px 0 rgba(255,255,255,.08);
+  --inner-lo:         inset 0 -1px 0 rgba(0,0,0,.4);
+
+  /* Device drop shadow */
+  --device-shadow:
+    0 80px 80px -30px rgba(0,0,0,.65),
+    0 30px 60px -10px rgba(0,0,0,.5);
+
+  /* ---------- LAYOUT ---------- */
+  --section-pad: clamp(72px, 9vw, 130px);
+  --section-pad-tight: clamp(48px, 6vw, 90px);
+  --gutter: clamp(20px, 3vw, 40px);
+  --max-w: 1280px;
+
+  /* ---------- MOTION ---------- */
+  --easing:        cubic-bezier(.22,.61,.36,1);
+  --easing-out:    cubic-bezier(.16,1,.3,1);
+  --easing-spring: cubic-bezier(.34,1.56,.64,1);
+  --easing-in-out: cubic-bezier(.65,0,.35,1);
+  --dur-fast: .2s;
+  --dur:      .35s;
+  --dur-slow: .8s;
+
+  /* ---------- TYPE — FAMILIES ---------- */
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-body:    'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-serif:   'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ---------- TYPE — SCALE ---------- */
+  --type-display-size:   clamp(40px, 5.6vw, 80px);
+  --type-display-weight: 600;
+  --type-display-tracking: -0.030em;
+  --type-display-leading: 1.02;
+
+  --type-display-2-size: clamp(32px, 4.6vw, 56px);
+  --type-display-2-leading: 1.04;
+
+  --type-h1-size: clamp(28px, 3.2vw, 40px);
+  --type-h2-size: clamp(22px, 2.4vw, 30px);
+  --type-h3-size: 20px;
+
+  --type-body-size:  16px;
+  --type-body-leading: 1.55;
+  --type-lede-size:  clamp(17px, 1.35vw, 20px);
+  --type-lede-leading: 1.6;
+  --type-small-size: 13.5px;
+
+  --type-eyebrow-size: 12px;
+  --type-eyebrow-tracking: .22em;
+
+  --type-mono-size: 11px;
+  --type-mono-tracking: .18em;
+}
+
+html, body{
+  font-family: var(--font-body);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-leading);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.display{
+  font-family: var(--font-display);
+  font-weight: var(--type-display-weight);
+  font-size: var(--type-display-size);
+  line-height: var(--type-display-leading);
+  letter-spacing: var(--type-display-tracking);
+  color: var(--text);
+  text-wrap: balance;
+  margin: 14px 0 18px;
+}
+.display-2{
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--type-display-2-size);
+  line-height: var(--type-display-2-leading);
+  letter-spacing: -0.025em;
+  color: var(--text);
+  text-wrap: balance;
+  margin: 14px 0 18px;
+}
+
+h1, .h1{ font-family: var(--font-display); font-weight: 600; font-size: var(--type-h1-size); line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 12px; color: var(--text); }
+h2, .h2{ font-family: var(--font-display); font-weight: 600; font-size: var(--type-h2-size); line-height: 1.15; letter-spacing: -0.015em; margin: 0 0 10px; color: var(--text); }
+h3, .h3{ font-family: var(--font-display); font-weight: 600; font-size: var(--type-h3-size); line-height: 1.25; letter-spacing: -0.01em; margin: 0 0 8px; color: var(--text); }
+
+/* Gradient text — blue-to-lavender */
+.grad-text{
+  background: linear-gradient(180deg, #FFFFFF 0%, #C5CAF8 50%, var(--accent-2) 100%);
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+}
+.is-approved .grad-text{
+  background: linear-gradient(180deg, #FFFFFF 0%, #C8F5DA 50%, var(--ok) 100%);
+  -webkit-background-clip: text; background-clip: text;
+}
+
+.serif-italic{
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.012em;
+  font-size: 1.06em;
+}
+
+.lede{
+  font-size: var(--type-lede-size);
+  line-height: var(--type-lede-leading);
+  color: var(--text-2);
+  max-width: 60ch;
+}
+
+p{ margin: 0 0 14px; }
+.muted{ color: var(--muted); }
+.muted-2{ color: var(--muted-2); }
+small, .small{ font-size: var(--type-small-size); color: var(--muted); }
+
+.eyebrow, .kicker{
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: var(--type-eyebrow-size);
+  line-height: 1;
+  letter-spacing: var(--type-eyebrow-tracking);
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: rgba(255,255,255,.025);
+  backdrop-filter: blur(8px);
+}
+.kicker.small{ padding: 6px 10px; font-size: 11px; }
+.eyebrow .dot, .kicker .dot{
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px rgba(124,138,255,.16), 0 0 14px rgba(124,138,255,.6);
+}
+.is-approved .eyebrow .dot, .is-approved .kicker .dot{
+  background: var(--ok);
+  box-shadow: 0 0 0 4px rgba(126,227,181,.16), 0 0 14px rgba(126,227,181,.6);
+}
+
+.mono{
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: var(--type-mono-size);
+  letter-spacing: var(--type-mono-tracking);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+code, .code{
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--line);
+  padding: 2px 6px;
+  border-radius: 6px;
+  color: var(--accent-2);
+}
+
+::selection{ background: rgba(124,138,255,.4); color: #fff; }

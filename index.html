@@ -1,0 +1,133 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verigate â€” IoT Receiving Device Â· Osama Sunaallah</title>
+<meta name="description" content="A premium portfolio for the Verigate IoT receiving device â€” one tap, one verified shipment, one source of truth.">
+<meta name="author" content="Osama Sunaallah">
+<meta name="theme-color" content="#0A0C16">
+<link rel="preload" href="./phoenix-bird.glb?v=30" as="fetch" type="model/gltf-binary">
+<link rel="preload" href="./verigate-logo.png?v=31" as="image">
+<meta http-equiv="Cache-Control" content="no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
+<!-- Open Graph / social cards -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Verigate â€” IoT Receiving Device">
+<meta property="og:description" content="One tap. One verified shipment. One source of truth.">
+<meta property="og:image" content="./process-thumbnail.jpg">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="stylesheet" href="kit.css?v=27">
+<link rel="icon" type="image/png" href="./product-clean.jpg">
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+<!-- Three.js bootstrap via importmap (ESM modules) â†’ window globals so the
+     no-build Babel-standalone components can use them directly. -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+  import * as THREE from 'three';
+  import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+  window.THREE = THREE;
+  window.GLTFLoader = GLTFLoader;
+  window.__threeReady = true;
+  window.dispatchEvent(new Event('threeready'));
+</script>
+</head>
+<body>
+  <div class="ambient">
+    <div class="blob blob-a"></div>
+    <div class="blob blob-b"></div>
+    <div class="grid-overlay"></div>
+    <div class="scanlines"></div>
+  </div>
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="env,react" src="Nav.jsx?v=27"></script>
+  <script type="text/babel" data-presets="env,react" src="Device3D.jsx?v=27"></script>
+  <script type="text/babel" data-presets="env,react" src="Hero3D.jsx?v=27"></script>
+  <script type="text/babel" data-presets="env,react" src="DeviceWithLCD.jsx?v=27"></script>
+  <script type="text/babel" data-presets="env,react" src="PhoenixIntro.jsx?v=27"></script>
+  <script type="text/babel" data-presets="env,react" src="HeroPhoto.jsx?v=27"></script>
+  <script type="text/babel" data-presets="env,react" src="MarqueeStrip.jsx?v=27"></script>
+  <script type="text/babel" data-presets="env,react" src="Architecture.jsx?v=27"></script>
+  <script type="text/babel" data-presets="env,react" src="Capabilities.jsx?v=27"></script>
+  <script type="text/babel" data-presets="env,react" src="Problems.jsx?v=27"></script>
+  <script type="text/babel" data-presets="env,react" src="Solution.jsx?v=27"></script>
+  <script type="text/babel" data-presets="env,react" src="Process.jsx?v=27"></script>
+  <script type="text/babel" data-presets="env,react" src="Explorer.jsx?v=27"></script>
+  <script type="text/babel" data-presets="env,react" src="Contact.jsx?v=27"></script>
+  <script type="text/babel" data-presets="env,react" src="Footer.jsx?v=27"></script>
+
+  <script type="text/babel" data-presets="env,react">
+    function App(){
+      // PhoenixIntro: mounted once; unmounts itself after its onDone fires.
+      // The intro internally handles its own gating (sessionStorage +
+      // prefers-reduced-motion + Three.js failure -> fallback).
+      const [introMounted, setIntroMounted] = React.useState(true);
+      // Bumped each time the nav logo is clicked. Used as React `key` so the
+      // PhoenixIntro component is fully unmounted-then-remounted (fresh state,
+      // fresh effect, fresh GLB animation timeline).
+      const [introKey, setIntroKey]         = React.useState(0);
+
+      React.useEffect(() => {
+        const els = document.querySelectorAll('.reveal');
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach(e => { if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+        }, { threshold: 0.12 });
+        els.forEach(el => io.observe(el));
+        return () => io.disconnect();
+      }, []);
+
+      // Nav logo click -> replay the cinematic intro. The handler in Nav.jsx
+      // has already cleared sessionStorage + the running guard before
+      // dispatching this event, so the new PhoenixIntro instance runs cleanly.
+      React.useEffect(() => {
+        const onReplay = () => {
+          setIntroKey(k => k + 1);
+          setIntroMounted(true);
+        };
+        window.addEventListener('verigate-replay-intro', onReplay);
+        return () => window.removeEventListener('verigate-replay-intro', onReplay);
+      }, []);
+
+      return (
+        <>
+          {introMounted && <PhoenixIntro key={introKey} onDone={() => setIntroMounted(false)} />}
+          <Nav />
+          <main>
+            <HeroPhoto />
+            <MarqueeStrip />
+            <Architecture />
+            <div className="div-glow" />
+            <Capabilities />
+            <Problems />
+            <Solution />
+            <Process />
+            <Explorer />
+            <Contact />
+          </main>
+          <Footer />
+        </>
+      );
+    }
+    // Babel-standalone can re-evaluate inline scripts; guard so the root mounts once.
+    if (!window.__verigateRoot){
+      window.__verigateRoot = ReactDOM.createRoot(document.getElementById('root'));
+      window.__verigateRoot.render(<App />);
+    }
+  </script>
+</body>
+</html>
