@@ -63,7 +63,7 @@ function DeviceWithLCD({
         powerPreference: 'high-performance'
       });
       renderer.setSize(initialW, initialH);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
       if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.05;
@@ -203,14 +203,20 @@ function DeviceWithLCD({
       // - LCD canvas redraw is capped at 15 fps + on chapter/state change
       // The model's idle rotation is slow enough that 30fps reads as smooth
       // and we save ~50% of GPU cycles vs an unthrottled loop.
-      let lastSceneTime = 0;
+      // Renders every frame while the device is on screen (smooth motion),
+      // and not at all while it is scrolled away or the tab is hidden.
       let lastLcdTime = 0;
       let lastChapterIdx = -1;
-      const SCENE_INTERVAL = 1000 / 30;
-      const LCD_INTERVAL = 1000 / 15;
+      const LCD_INTERVAL = 1000 / 20;
+      let onScreen = true;
+      const vis = typeof IntersectionObserver !== 'undefined'
+        ? new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; }, { rootMargin: '80px' }) : null;
+      if (vis) vis.observe(mount);
+      stateRef.current.vis = vis;
       const animate = (t) => {
         if (!alive) return;
         raf = requestAnimationFrame(animate);
+        if (!onScreen || document.hidden) return;
         const tMs = t || performance.now();
 
         const { activeChapter, chapters, rotation } = propsRef.current;
@@ -224,10 +230,6 @@ function DeviceWithLCD({
           lastLcdTime = tMs;
           lastChapterIdx = activeChapter;
         }
-
-        // Only do scene work + render on the 30fps tick
-        if (tMs - lastSceneTime < SCENE_INTERVAL) return;
-        lastSceneTime = tMs;
 
         if (model){
           dragYaw   += (dragYawT   - dragYaw)   * 0.16;
@@ -262,6 +264,7 @@ function DeviceWithLCD({
       const s = stateRef.current;
       if (s.onResize) window.removeEventListener('resize', s.onResize);
       if (s.resizeObs) s.resizeObs.disconnect();
+      if (s.vis) s.vis.disconnect();
       if (s.renderer) {
         if (s.onPointerDown) s.renderer.domElement.removeEventListener('pointerdown', s.onPointerDown);
         s.renderer.dispose();
@@ -296,7 +299,7 @@ function DeviceWithLCD({
       style={{
         width: '100%',
         height: '100%',
-        touchAction: 'none',
+        touchAction: 'pan-y',
         cursor: 'grab'
       }}
     />
@@ -381,3 +384,4 @@ function drawLCD(ctx, canvas, chap, time){
 }
 
 window.DeviceWithLCD = DeviceWithLCD;
+window.drawLCD = drawLCD;   // the process animation paints its LCD with this too

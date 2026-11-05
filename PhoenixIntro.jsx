@@ -125,11 +125,11 @@ function PhoenixIntro({ onDone }){
         powerPreference: 'high-performance'
       });
       renderer.setSize(W, H);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
       if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.1;
-      renderer.domElement.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;';
+      renderer.domElement.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity .35s ease-out;';
       host.appendChild(renderer.domElement);
 
       // Bright lighting so the phoenix's colored textures pop
@@ -144,10 +144,13 @@ function PhoenixIntro({ onDone }){
       clock = new THREE.Clock();
 
       const loader = new GLTFLoader();
-      const startedAt = performance.now();
+      // the flight clock starts only once the bird is loaded and on the GPU,
+      // so a slow download never makes it jump in halfway across the screen
+      let startedAt = 0;
+      const giveUp = setTimeout(() => { if (alive && !startedAt) finish(); }, 4500);
 
       loader.load(
-        './phoenix-bird.glb?v=30',
+        './phoenix-bird.glb?v=40',
         (gltf) => {
           if (!alive) return;
           model = gltf.scene;
@@ -188,10 +191,17 @@ function PhoenixIntro({ onDone }){
               ex: picked[4], ey: picked[5],
               rotY: picked[6], label: picked[7],
             };
-            console.log('[PhoenixIntro] picked path:', picked[7]);
           }
 
           scene.add(model);
+          clearTimeout(giveUp);
+          if (!alive) return;
+          // upload textures + compile shaders now, not on the first visible frame
+          renderer.compile(scene, camera);
+          renderer.render(scene, camera);
+          startedAt = performance.now();
+          clock.getDelta();
+          renderer.domElement.style.opacity = '1';
           setPhase('flying');
         },
         undefined,
@@ -209,11 +219,12 @@ function PhoenixIntro({ onDone }){
       const animate = () => {
         if (!alive) return;
         raf = requestAnimationFrame(animate);
+        if (!startedAt) return;
         const now = performance.now();
         const t = Math.min(1, (now - startedAt) / INTRO_DURATION_MS);
         const settleT = Math.max(0, (now - startedAt - (INTRO_DURATION_MS - SETTLE_DURATION_MS)) / SETTLE_DURATION_MS);
 
-        if (mixer) mixer.update(clock.getDelta());
+        if (mixer) mixer.update(Math.min(clock.getDelta(), 1 / 30));
 
         if (model){
           // Flight path: BIG horizontal sweep, off-screen LEFT -> off-screen RIGHT.
@@ -244,6 +255,7 @@ function PhoenixIntro({ onDone }){
 
           // Final settle: fade the canvas out as the bird exits stage-right.
           if (settleT > 0){
+            renderer.domElement.style.transition = 'none';
             renderer.domElement.style.opacity = String(1 - settleT);
           }
         }

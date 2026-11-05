@@ -14,7 +14,7 @@ const CAPS = [
 function Capabilities(){
   return (
     <section className="section" id="capabilities">
-      <header className="section-head reveal">
+      <header className="section-head center reveal">
         <span className="kicker">Capabilities</span>
         <h2 className="display-2">Built for the gate, <em className="serif-italic">not the office</em>.</h2>
       </header>
@@ -34,8 +34,6 @@ function Capabilities(){
         ))}
       </div>
       <style>{`
-        .display-2{ font-family: var(--font-display); font-weight: 600; font-size: clamp(32px, 4.8vw, 60px); line-height: 1.04; letter-spacing: -0.028em; margin: 14px 0 18px; text-wrap: balance; color: var(--text); }
-        .display-2 em{ font-family: var(--font-serif); font-style: italic; font-weight: 400; font-size: 1.06em; color: var(--accent); }
         .cap-grid{ display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 18px; }
         .cap{
           position:relative; overflow:hidden;
@@ -45,7 +43,6 @@ function Capabilities(){
           background:
             linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
             var(--surface);
-          backdrop-filter: blur(8px);
           box-shadow: var(--shadow-sm);
           transition:
             transform .55s var(--easing-out),

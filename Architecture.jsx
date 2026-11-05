@@ -61,9 +61,6 @@ function Architecture(){
       </div>
 
       <style>{`
-        .display-2{ font-family: var(--font-display); font-weight: 600; font-size: clamp(32px, 4.8vw, 60px); line-height: 1.04; letter-spacing: -0.028em; margin: 14px 0 18px; text-wrap: balance; color: var(--text); }
-        .display-2 em{ font-family: var(--font-serif); font-style: italic; font-weight: 400; letter-spacing: -0.012em; font-size: 1.06em; color: var(--accent); }
-        .lede.center{ margin: 36px auto 0; text-align:center; max-width: 70ch; }
 
         .arch{
           position:relative;
@@ -74,7 +71,6 @@ function Architecture(){
             radial-gradient(900px 280px at 50% 0%, rgba(124,138,255,.14), transparent 65%),
             linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
             var(--surface);
-          backdrop-filter: blur(8px);
           box-shadow: var(--shadow-md);
           isolation:isolate;
         }
@@ -93,7 +89,6 @@ function Architecture(){
           background:
             linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.01)),
             var(--surface);
-          backdrop-filter: blur(8px);
           box-shadow: var(--shadow-sm);
           transition:
             transform .45s var(--easing-out),

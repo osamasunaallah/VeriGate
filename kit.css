@@ -1,5 +1,5 @@
 /* Verigate v3 — UI kit base. Dark professional theme. */
-@import url('./colors_and_type.css?v=22');
+@import url('./colors_and_type.css?v=41');
 
 *{ box-sizing: border-box; }
 html,body{
@@ -9,7 +9,7 @@ html,body{
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
 }
-html{ scroll-behavior: smooth; }
+html{ scroll-behavior: smooth; scroll-padding-top: 90px; }
 body{ overflow-x: hidden; }
 img{ max-width:100%; display:block; }
 a{ color: inherit; text-decoration: none; }
@@ -46,9 +46,16 @@ svg{ display: block; }
 main{ position: relative; z-index: 1; }
 .section{ position: relative; width: min(1280px, calc(100% - 40px)); margin: 0 auto; padding: var(--section-pad) 0; }
 .section.tight{ padding: var(--section-pad-tight) 0; }
-.section-head{ max-width: 920px; margin-bottom: 56px; }
+.section-head{ max-width: 1000px; margin-bottom: clamp(40px, 5vw, 60px); }
 .section-head.center{ margin-left:auto; margin-right:auto; text-align:center; }
-.section-head .kicker{ margin-bottom: 6px; }
+.section-head .kicker{ margin-bottom: 4px; }
+.section-head .lede{ margin: 6px 0 0; }
+.section-head.center .lede{ margin-left: auto; margin-right: auto; }
+
+/* one heading style for every section */
+.display-2{ font-size: clamp(34px, 4.8vw, 60px); line-height: 1.04; letter-spacing: -0.028em; margin: 14px 0 16px; }
+.display-2 em{ font-family: var(--font-serif); font-style: italic; font-weight: 400; letter-spacing: -0.012em; font-size: 1.06em; color: var(--accent); }
+.lede{ font-size: clamp(16px, 1.25vw, 19px); line-height: 1.6; color: var(--text-2); max-width: 62ch; }
 
 /* =========================================================
    GLOW DIVIDER — tiny, static, no animation
@@ -100,11 +107,10 @@ main{ position: relative; z-index: 1; }
    ========================================================= */
 .reveal{
   opacity: 0;
-  transform: translate3d(0, 24px, 0);
+  transform: translate3d(0, 28px, 0);
   transition:
-    opacity .9s var(--easing-out),
-    transform .9s var(--easing-out);
-  will-change: opacity, transform;
+    opacity .7s var(--easing-out),
+    transform .8s var(--easing-out);
 }
 .reveal.in{
   opacity: 1;

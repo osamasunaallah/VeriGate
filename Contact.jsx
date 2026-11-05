@@ -32,7 +32,6 @@ function Contact(){
             radial-gradient(900px 360px at 50% 120%, rgba(167,139,250,.22), transparent 60%),
             linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
             var(--surface);
-          backdrop-filter: blur(10px);
           box-shadow: var(--shadow-lg);
           display: flex; flex-direction: column; align-items: center;
         }
@@ -41,10 +40,8 @@ function Contact(){
           left: 50%; top: 0;
           width: 640px; height: 640px;
           transform: translate(-50%, -55%);
-          background: radial-gradient(closest-side, rgba(124,138,255,.32), transparent 70%);
-          filter: blur(40px);
+          background: radial-gradient(closest-side, rgba(124,138,255,.28), rgba(124,138,255,.08) 55%, transparent 75%);
           pointer-events: none;
-          animation: contactBloom 7s ease-in-out infinite;
         }
         @keyframes contactBloom{
           0%, 100%{ transform: translate(-50%, -55%) scale(1); opacity: .85; }
@@ -72,8 +69,7 @@ function Contact(){
           padding: 8px 12px;
           border:1px solid var(--line);
           border-radius: 999px;
-          background: rgba(255,255,255,.7);
-          backdrop-filter: blur(8px);
+          background: rgba(255,255,255,.04);
           margin: 0 auto;
         }
         .contact-card .kicker .dot{
@@ -81,8 +77,7 @@ function Contact(){
           background: var(--accent);
           box-shadow: 0 0 0 4px rgba(124,138,255,.14), 0 0 18px rgba(124,138,255,.7);
         }
-        .display-2{
-          font-family: var(--font-display); font-weight: 600;
+        .contact-card .display-2{
           font-size: clamp(34px, 5.4vw, 72px);
           line-height: 1.02; letter-spacing: -0.032em;
           margin: 20px auto 28px;
@@ -90,12 +85,11 @@ function Contact(){
           color: var(--text);
           text-wrap: balance;
         }
-        .display-2 em{ font-family: var(--font-serif); font-style: italic; font-weight: 400; font-size: 1.06em; color: var(--accent); }
-        .display-2 em.grad-text{
+        .contact-card .display-2 em.grad-text{
           background: linear-gradient(180deg, #FFFFFF 0%, #C5CAF8 55%, #A78BFA 100%);
           -webkit-background-clip: text; background-clip: text; color: transparent;
         }
-        .lede.center{ margin: 0 auto 30px; text-align: center; max-width: 60ch; font-size: clamp(16px, 1.2vw, 19px); line-height: 1.6; color: var(--text-2); }
+        .contact-card .lede.center{ margin: 0 auto 30px; text-align: center; max-width: 60ch; font-size: clamp(16px, 1.2vw, 19px); line-height: 1.6; color: var(--text-2); }
       `}</style>
     </section>
   );

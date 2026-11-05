@@ -50,10 +50,10 @@ function Explorer(){
 
   return (
     <section className="section" id="components">
-      <header className="section-head reveal">
+      <header className="section-head center reveal">
         <span className="kicker">Inside the device</span>
         <h2 className="display-2">Nine parts. <em className="serif-italic">No mystery</em>.</h2>
-        <p className="lede">Tap any pin. The component, the role it plays, and the spec.</p>
+        <p className="lede">Every part, what it does, and its spec.</p>
       </header>
 
       <div className="explorer">
@@ -77,7 +77,7 @@ function Explorer(){
           {!active && <div className="panel-default">
             <span className="panel-eyebrow">Pick a component</span>
             <h3>The whole device, demystified.</h3>
-            <p className="panel-sub">Tap any pin on the diagram, or use the chips below. Arrow keys move between components, Esc clears.</p>
+            <p className="panel-sub">Tap a pin on the diagram or pick a part below.</p>
             <ul className="quick-rail">
               {ORDER.map(id => (
                 <li key={id}><button className="qr" onClick={() => setActive(id)}>{COMPONENTS[id].name}</button></li>
@@ -105,9 +105,6 @@ function Explorer(){
       </div>
 
       <style>{`
-        .display-2{ font-family: var(--font-display); font-weight: 600; font-size: clamp(32px, 4.8vw, 60px); line-height: 1.04; letter-spacing: -0.028em; margin: 14px 0 18px; color: var(--text); }
-        .display-2 em{ font-family: var(--font-serif); font-style: italic; font-weight: 400; font-size: 1.06em; color: var(--accent); }
-        .lede{ font-size: clamp(17px, 1.35vw, 20px); line-height: 1.6; color: var(--text-2); max-width: 60ch; }
 
         .explorer{ display:grid; grid-template-columns: 1.55fr 1fr; gap: 20px; align-items: stretch; }
         .explorer-stage{
@@ -160,7 +157,6 @@ function Explorer(){
           border-radius: 999px;
           border: 1px solid var(--line-2);
           background: rgba(20,23,43,.92);
-          backdrop-filter: blur(10px);
           box-shadow: var(--shadow-md);
           opacity:0; pointer-events: none;
           transition: opacity .2s ease, transform .25s var(--easing-out);
@@ -181,7 +177,6 @@ function Explorer(){
           background:
             linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
             var(--surface);
-          backdrop-filter: blur(8px);
           padding: 30px;
           display:flex; flex-direction:column; gap: 12px;
           min-height: 480px;

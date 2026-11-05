@@ -198,7 +198,7 @@ small, .small{ font-size: var(--type-small-size); color: var(--muted); }
   border: 1px solid var(--line);
   border-radius: var(--r-pill);
   background: rgba(255,255,255,.025);
-  backdrop-filter: blur(8px);
+
 }
 .kicker.small{ padding: 6px 10px; font-size: 11px; }
 .eyebrow .dot, .kicker .dot{

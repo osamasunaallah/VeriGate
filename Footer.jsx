@@ -15,8 +15,6 @@ function Footer(){
           <span>© {year} Osama Sunaallah</span>
           <span className="footer-sep">·</span>
           <a href="https://www.linkedin.com/in/osamasunaallah/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-          <span className="footer-sep">·</span>
-          <span className="footer-mono">v1.0 / shipped</span>
         </div>
       </div>
 

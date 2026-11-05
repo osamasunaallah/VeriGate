@@ -39,7 +39,7 @@ function Problems(){
 
   return (
     <section className="section" id="problems">
-      <header className="section-head reveal">
+      <header className="section-head center reveal">
         <span className="kicker">The problem</span>
         <h2 className="display-2">Receiving runs on <em className="serif-italic">faith</em>.</h2>
       </header>
@@ -61,8 +61,6 @@ function Problems(){
         ))}
       </ul>
       <style>{`
-        .display-2{ font-family: var(--font-display); font-weight: 600; font-size: clamp(32px, 4.8vw, 60px); line-height: 1.04; letter-spacing: -0.028em; margin: 14px 0 18px; color: var(--text); }
-        .display-2 em{ font-family: var(--font-serif); font-style: italic; font-weight: 400; font-size: 1.06em; color: var(--accent); }
         .prob-grid{
           list-style:none; padding:0; margin: 0;
           display: grid; grid-template-columns: repeat(3, minmax(0,1fr));
@@ -81,7 +79,6 @@ function Problems(){
           background:
             linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
             var(--surface);
-          backdrop-filter: blur(8px);
           box-shadow: var(--shadow-sm);
           transform-style: preserve-3d;
           transform:
@@ -89,19 +86,15 @@ function Problems(){
             rotate(var(--stack-rot))
             scale(.92);
           opacity: 0;
-          filter: blur(6px);
           transition:
             transform 1.1s cubic-bezier(.2,.85,.25,1),
             opacity .9s var(--easing-out),
-            filter .7s var(--easing-out),
             border-color .35s var(--easing),
             box-shadow .45s var(--easing);
           transition-delay: calc(var(--idx, 0) * 120ms + 50ms);
-          will-change: transform, opacity, filter;
         }
         .prob-grid.is-spread .prob{
           opacity: 1;
-          filter: blur(0);
           transform:
             translate3d(0, 0, 0)
             rotate(0deg)
