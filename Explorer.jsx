@@ -7,8 +7,8 @@ const COMPONENTS = {
   wires:   { name: 'Wiring Harness', desc: 'Power and signal lines.',                         role: 'Keeps the boards connected with clean, reliable signal between the MCU, reader, and display.', specs: [['Gauge','22 AWG'],['Bus','SPI · 5 V · GND']] },
   battery: { name: '9 V Battery',    desc: 'Backup power.',                                   role: 'Keeps the device alive through short power dips so the gate never stalls mid-shipment.', specs: [['Cell','9 V alkaline'],['Use','Brownout backup']] },
   enclosure:{ name: 'Enclosure',     desc: 'The outer case.',                                 role: 'Protects the electronics and presents a clean, branded surface to the driver.', specs: [['Material','ABS composite'],['Finish','Matte black'],['Mount','Counter / wall']] },
-  card:    { name: 'RFID Card',      desc: "A driver's credential, in card form.",            role: 'Each card is bound to one driver — tap it, and the matching shipment shows up.', specs: [['Type','MIFARE Classic 1K'],['Frequency','13.56 MHz']] },
-  fob:     { name: 'RFID Keyfob',    desc: 'Same credential, in keyring form.',               role: "A drop-in alternative for drivers who'd rather carry a fob than a card.", specs: [['Type','MIFARE Classic'],['Form','Keyring fob']] },
+  card:    { name: 'RFID Card',      desc: "A driver’s credential, in card form.",            role: 'Each card is bound to one driver — tap it, and the matching shipment shows up.', specs: [['Type','MIFARE Classic 1K'],['Frequency','13.56 MHz']] },
+  fob:     { name: 'RFID Keyfob',    desc: 'Same credential, in keyring form.',               role: "A drop-in alternative for drivers who’d rather carry a fob than a card.", specs: [['Type','MIFARE Classic'],['Form','Keyring fob']] },
 };
 const ORDER = ['panel','lcd','rfid','mcu','wires','battery','enclosure','card','fob'];
 // Hotspot positions on the exploded.png (% of stage)
@@ -225,7 +225,7 @@ function Explorer(){
           border: 1px solid var(--line);
           background: var(--surface-2);
           cursor: pointer;
-          transition: all .2s var(--easing);
+          transition: color .2s var(--easing), border-color .2s var(--easing), background .2s var(--easing), transform .16s var(--easing);
         }
         .qr:hover{
           color: var(--accent);
@@ -240,7 +240,7 @@ function Explorer(){
           color: var(--text);
           background: var(--surface);
           font-size: 13px;
-          transition: all .2s var(--easing);
+          transition: color .2s var(--easing), border-color .2s var(--easing), background .2s var(--easing), transform .16s var(--easing);
           cursor: pointer;
         }
         .mini:hover{

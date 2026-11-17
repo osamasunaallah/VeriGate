@@ -40,7 +40,7 @@ function Solution(){
             linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
             var(--surface);
           box-shadow: var(--shadow-sm);
-          transition: transform .35s var(--easing-out), border-color .25s ease, box-shadow .3s ease;
+          transition: transform .25s var(--easing-out), border-color .2s ease, box-shadow .25s ease;
         }
         .solution-points li:hover{
           transform: translateX(6px);

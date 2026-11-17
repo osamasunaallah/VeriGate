@@ -351,14 +351,14 @@ function drawLCD(ctx, canvas, chap, time){
   ctx.textBaseline = 'middle';
 
   // Line 1 — main heading
-  ctx.font = '700 90px "JetBrains Mono", "Menlo", "Consolas", monospace';
+  ctx.font = '700 90px "IBM Plex Mono", "Menlo", "Consolas", monospace';
   ctx.shadowColor = isApproved ? 'rgba(170,255,200,0.9)' : 'rgba(170,210,255,0.9)';
   ctx.shadowBlur = 26;
   ctx.fillStyle = isApproved ? '#E8FFEF' : '#E0EBFF';
   ctx.fillText(line1 + cursor, w / 2, h * 0.36);
 
   // Line 2 — sub heading
-  ctx.font = '600 56px "JetBrains Mono", "Menlo", "Consolas", monospace';
+  ctx.font = '600 56px "IBM Plex Mono", "Menlo", "Consolas", monospace';
   ctx.shadowBlur = 18;
   ctx.fillStyle = isApproved ? '#C8F5DA' : '#B5CDFF';
   ctx.fillText(line2, w / 2, h * 0.74);

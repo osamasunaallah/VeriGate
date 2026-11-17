@@ -129,7 +129,7 @@ function HeroPhoto(){
       </div>
 
       <style>{`
-        .hp{ position: relative; min-height: calc(100vh - 76px); display: flex; align-items: center; overflow: hidden; isolation: isolate; }
+        .hp{ position: relative; min-height: calc(100vh - 76px); min-height: calc(100dvh - 76px); display: flex; align-items: center; overflow: hidden; isolation: isolate; }
         .hp-bg{
           position: absolute; inset: 0; z-index: 0; pointer-events: none;
           background:
@@ -146,7 +146,7 @@ function HeroPhoto(){
         .hp-shell{
           position: relative; z-index: 1;
           width: min(1280px, calc(100% - 32px)); margin: 0 auto;
-          min-height: calc(100vh - 76px);
+          min-height: calc(100vh - 76px); min-height: calc(100dvh - 76px);
           padding: clamp(18px, 4vh, 48px) 0 clamp(22px, 4vh, 44px);
           display: grid; grid-template-rows: auto 1fr auto; justify-items: center;
           gap: clamp(6px, 1.4vh, 16px); text-align: center;

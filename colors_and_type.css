@@ -6,7 +6,8 @@
    contrast, type rhythm carried across the whole page.
    ========================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Familjen+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+@import url('https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700,800&display=swap');
 
 :root{
   /* ---------- SURFACES ---------- */
@@ -89,10 +90,10 @@
   --dur-slow: .8s;
 
   /* ---------- TYPE — FAMILIES ---------- */
-  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
-  --font-body:    'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-serif:   'Instrument Serif', 'Iowan Old Style', Georgia, serif;
-  --font-mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-display: 'Familjen Grotesk', 'Switzer', system-ui, sans-serif;
+  --font-body:    'Switzer', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-serif:   'EB Garamond', 'Iowan Old Style', Georgia, serif;
+  --font-mono:    'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* ---------- TYPE — SCALE ---------- */
   --type-display-size:   clamp(40px, 5.6vw, 80px);

@@ -156,11 +156,11 @@ function ReceivingScene({ timeRef }){
         if (txt + settled === scaleShown) return; scaleShown = txt + settled;
         const x = scaleCtx, w = 512, h = 160;
         x.fillStyle = '#031208'; x.fillRect(0, 0, w, h);
-        x.font = '700 104px "JetBrains Mono", Consolas, monospace'; x.textAlign = 'right'; x.textBaseline = 'middle';
+        x.font = '700 104px "IBM Plex Mono", Consolas, monospace'; x.textAlign = 'right'; x.textBaseline = 'middle';
         x.fillStyle = 'rgba(40,255,140,.08)'; x.fillText('888.8 kg', w - 24, h / 2 + 4);
         x.shadowColor = 'rgba(60,255,150,.9)'; x.shadowBlur = 22; x.fillStyle = settled ? '#5dff9c' : '#3fd07a';
         x.fillText(txt, w - 24, h / 2 + 4); x.shadowBlur = 0;
-        if (settled){ x.fillStyle = '#5dff9c'; x.font = '700 26px "JetBrains Mono", monospace'; x.textAlign = 'left'; x.fillText('STABLE', 22, 30); }
+        if (settled){ x.fillStyle = '#5dff9c'; x.font = '700 26px "IBM Plex Mono", monospace'; x.textAlign = 'left'; x.fillText('STABLE', 22, 30); }
         scaleTex.needsUpdate = true;
       };
 
@@ -178,9 +178,9 @@ function ReceivingScene({ timeRef }){
         const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#0b1124'); g.addColorStop(1, '#070a17');
         x.fillStyle = g; x.fillRect(0, 0, w, h);
         x.fillStyle = '#111a33'; x.fillRect(0, 0, w, 64);
-        x.fillStyle = '#8aa5ff'; x.font = '700 26px "Inter", Arial'; x.textBaseline = 'middle'; x.fillText('VERIGATE · Receiving', 28, 33);
-        x.fillStyle = '#6fe3ff'; x.font = '600 20px "JetBrains Mono", monospace'; x.textAlign = 'right'; x.fillText('PO-4471 · DRV-0417', w - 28, 33); x.textAlign = 'left';
-        const row = (y, k, v, col = '#e6ecff') => { x.fillStyle = '#7480a6'; x.font = '500 24px "Inter", Arial'; x.fillText(k, 40, y); x.fillStyle = col; x.font = '700 30px "JetBrains Mono", monospace'; x.textAlign = 'right'; x.fillText(v, w - 40, y); x.textAlign = 'left'; x.fillStyle = 'rgba(255,255,255,.06)'; x.fillRect(40, y + 26, w - 80, 2); };
+        x.fillStyle = '#8aa5ff'; x.font = '700 26px "Switzer", Arial'; x.textBaseline = 'middle'; x.fillText('VERIGATE · Receiving', 28, 33);
+        x.fillStyle = '#6fe3ff'; x.font = '600 20px "IBM Plex Mono", monospace'; x.textAlign = 'right'; x.fillText('PO-4471 · DRV-0417', w - 28, 33); x.textAlign = 'left';
+        const row = (y, k, v, col = '#e6ecff') => { x.fillStyle = '#7480a6'; x.font = '500 24px "Switzer", Arial'; x.fillText(k, 40, y); x.fillStyle = col; x.font = '700 30px "IBM Plex Mono", monospace'; x.textAlign = 'right'; x.fillText(v, w - 40, y); x.textAlign = 'left'; x.fillStyle = 'rgba(255,255,255,.06)'; x.fillRect(40, y + 26, w - 80, 2); };
         row(118, 'Expected weight', '250.0 kg');
         row(182, 'Measured weight', mode === 'idle' ? '— — —' : kg.toFixed(1) + ' kg', mode === 'match' ? '#5dff9c' : '#e6ecff');
         row(246, 'Expected qty', '24 cartons');
@@ -188,11 +188,11 @@ function ReceivingScene({ timeRef }){
         if (mode === 'match'){
           x.fillStyle = '#0e7a46'; x.beginPath(); x.roundRect(40, 368, w - 80, 150, 22); x.fill();
           x.strokeStyle = '#3dff9a'; x.lineWidth = 3; x.stroke();
-          x.fillStyle = '#eafff3'; x.font = '800 56px "Inter", Arial'; x.textAlign = 'center'; x.fillText('✓  QTY MATCH', w / 2, 425);
-          x.font = '700 30px "JetBrains Mono", monospace'; x.fillStyle = '#c6f7dc'; x.fillText('APPROVED · SHIPMENT RECORDED', w / 2, 482); x.textAlign = 'left';
+          x.fillStyle = '#eafff3'; x.font = '800 56px "Switzer", Arial'; x.textAlign = 'center'; x.fillText('✓  QTY MATCH', w / 2, 425);
+          x.font = '700 30px "IBM Plex Mono", monospace'; x.fillStyle = '#c6f7dc'; x.fillText('APPROVED · SHIPMENT RECORDED', w / 2, 482); x.textAlign = 'left';
         } else {
           x.fillStyle = '#16204a'; x.beginPath(); x.roundRect(40, 368, w - 80, 150, 22); x.fill();
-          x.fillStyle = '#8aa5ff'; x.font = '700 40px "Inter", Arial'; x.textAlign = 'center'; x.fillText(mode === 'idle' ? 'Waiting for the scale…' : 'Reconciling…', w / 2, 443); x.textAlign = 'left';
+          x.fillStyle = '#8aa5ff'; x.font = '700 40px "Switzer", Arial'; x.textAlign = 'center'; x.fillText(mode === 'idle' ? 'Waiting for the scale…' : 'Reconciling…', w / 2, 443); x.textAlign = 'left';
         }
         padTex.needsUpdate = true;
       };
@@ -370,9 +370,9 @@ function ReceivingScene({ timeRef }){
         x.fillStyle = g; x.fillRect(0, 0, w, h);
         x.fillStyle = '#111a33'; x.fillRect(0, 0, w, 64);
         x.textBaseline = 'middle'; x.textAlign = 'left';
-        x.fillStyle = '#8aa5ff'; x.font = '700 26px Inter, Arial'; x.fillText('VERIGATE · Receiving', 28, 33);
-        x.fillStyle = '#6fe3ff'; x.font = '600 20px "JetBrains Mono", monospace'; x.textAlign = 'right'; x.fillText('PO-4471 · DRV-0417', w - 28, 33); x.textAlign = 'left';
-        const row = (y, k, v, col) => { x.fillStyle = '#7480a6'; x.font = '500 24px Inter, Arial'; x.fillText(k, 40, y); x.fillStyle = col || '#e6ecff'; x.font = '700 30px "JetBrains Mono", monospace'; x.textAlign = 'right'; x.fillText(v, w - 40, y); x.textAlign = 'left'; x.fillStyle = 'rgba(255,255,255,.06)'; x.fillRect(40, y + 26, w - 80, 2); };
+        x.fillStyle = '#8aa5ff'; x.font = '700 26px Switzer, Arial'; x.fillText('VERIGATE · Receiving', 28, 33);
+        x.fillStyle = '#6fe3ff'; x.font = '600 20px "IBM Plex Mono", monospace'; x.textAlign = 'right'; x.fillText('PO-4471 · DRV-0417', w - 28, 33); x.textAlign = 'left';
+        const row = (y, k, v, col) => { x.fillStyle = '#7480a6'; x.font = '500 24px Switzer, Arial'; x.fillText(k, 40, y); x.fillStyle = col || '#e6ecff'; x.font = '700 30px "IBM Plex Mono", monospace'; x.textAlign = 'right'; x.fillText(v, w - 40, y); x.textAlign = 'left'; x.fillStyle = 'rgba(255,255,255,.06)'; x.fillRect(40, y + 26, w - 80, 2); };
         const green = '#5dff9c';
         row(112, 'Expected weight', '250.0 kg');
         row(176, 'Measured weight', t < 17.4 ? '— — —' : kg.toFixed(1) + ' kg', ok > 0 ? green : null);
@@ -386,10 +386,10 @@ function ReceivingScene({ timeRef }){
           x.strokeStyle = '#eafff3'; x.lineWidth = 12; x.lineCap = 'round'; x.beginPath();
           const p1 = Math.min(1, ok * 2), p2 = Math.max(0, ok * 2 - 1);
           x.moveTo(150, 440); x.lineTo(150 + 28 * p1, 440 + 28 * p1); if (p2 > 0) x.lineTo(178 + 56 * p2, 468 - 64 * p2); x.stroke();
-          x.fillStyle = `rgba(234,255,243,${ok})`; x.font = '800 54px Inter, Arial'; x.fillText('QTY MATCH', 280, 420);
-          x.fillStyle = `rgba(198,247,220,${ok})`; x.font = '700 26px "JetBrains Mono", monospace'; x.fillText('APPROVED · SHIPMENT RECORDED', 280, 474);
+          x.fillStyle = `rgba(234,255,243,${ok})`; x.font = '800 54px Switzer, Arial'; x.fillText('QTY MATCH', 280, 420);
+          x.fillStyle = `rgba(198,247,220,${ok})`; x.font = '700 26px "IBM Plex Mono", monospace'; x.fillText('APPROVED · SHIPMENT RECORDED', 280, 474);
         } else {
-          x.fillStyle = '#8aa5ff'; x.font = '700 34px Inter, Arial'; x.textAlign = 'center';
+          x.fillStyle = '#8aa5ff'; x.font = '700 34px Switzer, Arial'; x.textAlign = 'center';
           x.fillText(t < 17.4 ? 'Waiting for the scale…' : 'Reconciling with the manifest…', w / 2, 420); x.textAlign = 'left';
           x.fillStyle = 'rgba(255,255,255,.1)'; x.beginPath(); x.roundRect(110, 462, w - 220, 14, 7); x.fill();
           const gb = x.createLinearGradient(110, 0, w - 110, 0); gb.addColorStop(0, '#3b6bff'); gb.addColorStop(1, '#35d6ff');

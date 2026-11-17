@@ -1,5 +1,5 @@
 /* Verigate v3 — UI kit base. Dark professional theme. */
-@import url('./colors_and_type.css?v=41');
+@import url('./colors_and_type.css?v=42');
 
 *{ box-sizing: border-box; }
 html,body{
@@ -134,4 +134,17 @@ main{ position: relative; z-index: 1; }
     opacity: 1; transform: none; transition: none;
   }
   *{ animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* =========================================================
+   POLISH 18.11.2026: Charles Liu's UI rules + Emil Kowalski motion rules
+   ========================================================= */
+a{ text-underline-offset: .2em; }
+h1,h2,h3{ text-wrap: balance; }
+p{ text-wrap: pretty; }
+sup{ line-height:0; position:relative; vertical-align:baseline; top:-.5em; }
+.btn:active, .mini:active, .qr:active{ transform: scale(.97); transition-duration: .1s; }
+@media (hover: none){
+  .btn.primary:hover, .solution-points li:hover, .step:hover, .cap:hover .cap-ico,
+  .hot:hover .hot-pin, .contact-cta:hover .contact-cta-arrow, .video-play:hover svg{ transform: none; }
 }

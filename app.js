@@ -293,12 +293,12 @@ function drawLCD(ctx, canvas, chap, time) {
   const cursor = cursorOn ? '_' : ' ';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = '700 90px "JetBrains Mono", "Menlo", "Consolas", monospace';
+  ctx.font = '700 90px "IBM Plex Mono", "Menlo", "Consolas", monospace';
   ctx.shadowColor = isApproved ? 'rgba(170,255,200,0.9)' : 'rgba(170,210,255,0.9)';
   ctx.shadowBlur = 26;
   ctx.fillStyle = isApproved ? '#E8FFEF' : '#E0EBFF';
   ctx.fillText(line1 + cursor, w / 2, h * 0.36);
-  ctx.font = '600 56px "JetBrains Mono", "Menlo", "Consolas", monospace';
+  ctx.font = '600 56px "IBM Plex Mono", "Menlo", "Consolas", monospace';
   ctx.shadowBlur = 18;
   ctx.fillStyle = isApproved ? '#C8F5DA' : '#B5CDFF';
   ctx.fillText(line2, w / 2, h * 0.74);
@@ -950,7 +950,7 @@ function HeroPhoto() {
       animationDuration: HERO_CYCLE_MS + 'ms'
     }
   }))))))), React.createElement("style", null, `
-        .hp{ position: relative; min-height: calc(100vh - 76px); display: flex; align-items: center; overflow: hidden; isolation: isolate; }
+        .hp{ position: relative; min-height: calc(100vh - 76px); min-height: calc(100dvh - 76px); display: flex; align-items: center; overflow: hidden; isolation: isolate; }
         .hp-bg{
           position: absolute; inset: 0; z-index: 0; pointer-events: none;
           background:
@@ -967,7 +967,7 @@ function HeroPhoto() {
         .hp-shell{
           position: relative; z-index: 1;
           width: min(1280px, calc(100% - 32px)); margin: 0 auto;
-          min-height: calc(100vh - 76px);
+          min-height: calc(100vh - 76px); min-height: calc(100dvh - 76px);
           padding: clamp(18px, 4vh, 48px) 0 clamp(22px, 4vh, 44px);
           display: grid; grid-template-rows: auto 1fr auto; justify-items: center;
           gap: clamp(6px, 1.4vh, 16px); text-align: center;
@@ -1738,7 +1738,7 @@ function Solution() {
             linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
             var(--surface);
           box-shadow: var(--shadow-sm);
-          transition: transform .35s var(--easing-out), border-color .25s ease, box-shadow .3s ease;
+          transition: transform .25s var(--easing-out), border-color .2s ease, box-shadow .25s ease;
         }
         .solution-points li:hover{
           transform: translateX(6px);
@@ -2046,7 +2046,7 @@ function ReceivingScene({
           h = 160;
         x.fillStyle = '#031208';
         x.fillRect(0, 0, w, h);
-        x.font = '700 104px "JetBrains Mono", Consolas, monospace';
+        x.font = '700 104px "IBM Plex Mono", Consolas, monospace';
         x.textAlign = 'right';
         x.textBaseline = 'middle';
         x.fillStyle = 'rgba(40,255,140,.08)';
@@ -2058,7 +2058,7 @@ function ReceivingScene({
         x.shadowBlur = 0;
         if (settled) {
           x.fillStyle = '#5dff9c';
-          x.font = '700 26px "JetBrains Mono", monospace';
+          x.font = '700 26px "IBM Plex Mono", monospace';
           x.textAlign = 'left';
           x.fillText('STABLE', 22, 30);
         }
@@ -2098,20 +2098,20 @@ function ReceivingScene({
         x.fillStyle = '#111a33';
         x.fillRect(0, 0, w, 64);
         x.fillStyle = '#8aa5ff';
-        x.font = '700 26px "Inter", Arial';
+        x.font = '700 26px "Switzer", Arial';
         x.textBaseline = 'middle';
         x.fillText('VERIGATE · Receiving', 28, 33);
         x.fillStyle = '#6fe3ff';
-        x.font = '600 20px "JetBrains Mono", monospace';
+        x.font = '600 20px "IBM Plex Mono", monospace';
         x.textAlign = 'right';
         x.fillText('PO-4471 · DRV-0417', w - 28, 33);
         x.textAlign = 'left';
         const row = (y, k, v, col = '#e6ecff') => {
           x.fillStyle = '#7480a6';
-          x.font = '500 24px "Inter", Arial';
+          x.font = '500 24px "Switzer", Arial';
           x.fillText(k, 40, y);
           x.fillStyle = col;
-          x.font = '700 30px "JetBrains Mono", monospace';
+          x.font = '700 30px "IBM Plex Mono", monospace';
           x.textAlign = 'right';
           x.fillText(v, w - 40, y);
           x.textAlign = 'left';
@@ -2131,10 +2131,10 @@ function ReceivingScene({
           x.lineWidth = 3;
           x.stroke();
           x.fillStyle = '#eafff3';
-          x.font = '800 56px "Inter", Arial';
+          x.font = '800 56px "Switzer", Arial';
           x.textAlign = 'center';
           x.fillText('✓  QTY MATCH', w / 2, 425);
-          x.font = '700 30px "JetBrains Mono", monospace';
+          x.font = '700 30px "IBM Plex Mono", monospace';
           x.fillStyle = '#c6f7dc';
           x.fillText('APPROVED · SHIPMENT RECORDED', w / 2, 482);
           x.textAlign = 'left';
@@ -2144,7 +2144,7 @@ function ReceivingScene({
           x.roundRect(40, 368, w - 80, 150, 22);
           x.fill();
           x.fillStyle = '#8aa5ff';
-          x.font = '700 40px "Inter", Arial';
+          x.font = '700 40px "Switzer", Arial';
           x.textAlign = 'center';
           x.fillText(mode === 'idle' ? 'Waiting for the scale…' : 'Reconciling…', w / 2, 443);
           x.textAlign = 'left';
@@ -2722,19 +2722,19 @@ function ReceivingScene({
         x.textBaseline = 'middle';
         x.textAlign = 'left';
         x.fillStyle = '#8aa5ff';
-        x.font = '700 26px Inter, Arial';
+        x.font = '700 26px Switzer, Arial';
         x.fillText('VERIGATE · Receiving', 28, 33);
         x.fillStyle = '#6fe3ff';
-        x.font = '600 20px "JetBrains Mono", monospace';
+        x.font = '600 20px "IBM Plex Mono", monospace';
         x.textAlign = 'right';
         x.fillText('PO-4471 · DRV-0417', w - 28, 33);
         x.textAlign = 'left';
         const row = (y, k, v, col) => {
           x.fillStyle = '#7480a6';
-          x.font = '500 24px Inter, Arial';
+          x.font = '500 24px Switzer, Arial';
           x.fillText(k, 40, y);
           x.fillStyle = col || '#e6ecff';
-          x.font = '700 30px "JetBrains Mono", monospace';
+          x.font = '700 30px "IBM Plex Mono", monospace';
           x.textAlign = 'right';
           x.fillText(v, w - 40, y);
           x.textAlign = 'left';
@@ -2769,14 +2769,14 @@ function ReceivingScene({
           if (p2 > 0) x.lineTo(178 + 56 * p2, 468 - 64 * p2);
           x.stroke();
           x.fillStyle = `rgba(234,255,243,${ok})`;
-          x.font = '800 54px Inter, Arial';
+          x.font = '800 54px Switzer, Arial';
           x.fillText('QTY MATCH', 280, 420);
           x.fillStyle = `rgba(198,247,220,${ok})`;
-          x.font = '700 26px "JetBrains Mono", monospace';
+          x.font = '700 26px "IBM Plex Mono", monospace';
           x.fillText('APPROVED · SHIPMENT RECORDED', 280, 474);
         } else {
           x.fillStyle = '#8aa5ff';
-          x.font = '700 34px Inter, Arial';
+          x.font = '700 34px Switzer, Arial';
           x.textAlign = 'center';
           x.fillText(t < 17.4 ? 'Waiting for the scale…' : 'Reconciling with the manifest…', w / 2, 420);
           x.textAlign = 'left';
@@ -3353,14 +3353,14 @@ const COMPONENTS = {
   },
   card: {
     name: 'RFID Card',
-    desc: "A driver's credential, in card form.",
+    desc: "A driver’s credential, in card form.",
     role: 'Each card is bound to one driver — tap it, and the matching shipment shows up.',
     specs: [['Type', 'MIFARE Classic 1K'], ['Frequency', '13.56 MHz']]
   },
   fob: {
     name: 'RFID Keyfob',
     desc: 'Same credential, in keyring form.',
-    role: "A drop-in alternative for drivers who'd rather carry a fob than a card.",
+    role: "A drop-in alternative for drivers who’d rather carry a fob than a card.",
     specs: [['Type', 'MIFARE Classic'], ['Form', 'Keyring fob']]
   }
 };
@@ -3619,7 +3619,7 @@ function Explorer() {
           border: 1px solid var(--line);
           background: var(--surface-2);
           cursor: pointer;
-          transition: all .2s var(--easing);
+          transition: color .2s var(--easing), border-color .2s var(--easing), background .2s var(--easing), transform .16s var(--easing);
         }
         .qr:hover{
           color: var(--accent);
@@ -3634,7 +3634,7 @@ function Explorer() {
           color: var(--text);
           background: var(--surface);
           font-size: 13px;
-          transition: all .2s var(--easing);
+          transition: color .2s var(--easing), border-color .2s var(--easing), background .2s var(--easing), transform .16s var(--easing);
           cursor: pointer;
         }
         .mini:hover{
