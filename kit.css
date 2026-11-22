@@ -148,3 +148,57 @@ sup{ line-height:0; position:relative; vertical-align:baseline; top:-.5em; }
   .btn.primary:hover, .solution-points li:hover, .step:hover, .cap:hover .cap-ico,
   .hot:hover .hot-pin, .contact-cta:hover .contact-cta-arrow, .video-play:hover svg{ transform: none; }
 }
+
+/* =========================================================
+   Black / white / blue (22.11.2026, Osama): black surfaces 70%,
+   white and greys 20%, electric blue 10% for the main buttons,
+   the headline accents and the device rim light. No gradients,
+   except the one white spotlight that lights the hero device.
+   One override layer, so the JSX styles stay as they were.
+   ========================================================= */
+:root{
+  --bg:#050505; --bg-2:#0A0A0A; --bg-elev:#101010;
+  --surface:#121212; --surface-2:#1A1A1A; --surface-3:#232323;
+  --line: rgba(255,255,255,.09); --line-2: rgba(255,255,255,.18); --line-3: rgba(255,255,255,.32);
+  --text:#F5F5F5; --text-2:#D0D0D0; --muted:#929292; --muted-2:#5E5E5E;
+  --accent:#E8E8E8; --accent-2:#E8E8E8; --accent-3:#E8E8E8;
+  --pop:#2D6BFF; --on-pop:#FFFFFF; --pop-ink:#5B8CFF;
+  --pop-shadow: 0 12px 28px -10px rgba(45,107,255,.65);
+  --glow-accent: 0 10px 28px -14px rgba(0,0,0,.8);
+  --glow-accent-soft: 0 8px 20px -12px rgba(0,0,0,.6);
+  --glow-violet: var(--glow-accent);
+}
+.ambient{ background: var(--bg) !important; }
+.cap::before, .cap::after, .cap-shine, .prob-shine, .prob-glow, .contact-bloom, .contact-grid,
+.spotlight, .hp-bg, .hp-bg-ok, .video-glow{ display: none !important; }
+/* the one light: a white spotlight behind the hero device */
+.hp-halo{ background: radial-gradient(closest-side, rgba(255,255,255,.30), rgba(255,255,255,.08) 52%, transparent 74%) !important; }
+.hp.is-approved .hp-halo{ background: radial-gradient(closest-side, rgba(255,255,255,.34), rgba(255,255,255,.09) 52%, transparent 74%) !important; }
+.div-glow{ background: var(--line-2) !important; }
+.arch, .arch-node, .cap, .contact-card, .explorer-panel, .prob, .step, .solution-points li{ background: var(--surface) !important; }
+.step.is-active{ background: var(--surface-2) !important; }
+.explorer-stage{ background: #0A0A0A !important; }
+.video-frame, .rs-wrap{ background: #0A0A0A !important; }
+.arch-ico, .cap-ico, .cap[data-accent="b"] .cap-ico, .cap[data-accent="c"] .cap-ico, .sp-num{ background: rgba(255,255,255,.07) !important; color: var(--text) !important; }
+.video-track-fill, .hot-pin{ background: var(--text) !important; }
+.arch-node-key{ background: var(--pop) !important; border-color: var(--pop) !important; box-shadow: var(--pop-shadow) !important; }
+.arch-node-key, .arch-node-key *{ color: #FFFFFF !important; }
+.arch-node-key .arch-ico{ background: rgba(255,255,255,.18) !important; }
+.nav-links a::after, .prob::before, .step::before{ background: var(--text) !important; }
+/* headline accents: solid blue words, roman */
+.grad-text, .is-approved .grad-text, .contact-card .display-2 em.grad-text, .hp-word-in.is-accent{
+  background: none !important; -webkit-background-clip: border-box !important; background-clip: border-box !important;
+  color: var(--pop-ink) !important; -webkit-text-fill-color: currentColor;
+}
+.serif-italic, .hp-word-in.is-accent{ font-family: inherit !important; font-style: normal !important; font-weight: inherit !important; letter-spacing: inherit !important; }
+/* the 10%: main buttons in electric blue */
+.btn.primary, .nav-cta, .hot.active .hot-pin, .video-play svg{
+  background: var(--pop) !important; color: var(--on-pop) !important;
+  box-shadow: var(--pop-shadow) !important; filter: none !important;
+}
+.btn.primary:hover{ box-shadow: 0 16px 34px -10px rgba(45,107,255,.8) !important; }
+/* section eyebrows dropped: the headings say it */
+.kicker{ display: none !important; }
+.kit-nav{ background: rgba(10,10,10,.86) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+.kit-nav.scrolled{ background: rgba(10,10,10,.94) !important; }
+.display-2 em, h1 em, h2 em, .serif-italic{ color: var(--pop-ink) !important; }

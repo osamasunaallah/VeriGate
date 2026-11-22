@@ -66,27 +66,31 @@ function DeviceWithLCD({
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
       if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.05;
+      renderer.toneMappingExposure = 1.12;
       mount.appendChild(renderer.domElement);
       renderer.domElement.style.display = 'block';
       renderer.domElement.style.width = '100%';
       renderer.domElement.style.height = '100%';
 
-      // ----- Lights — 3-point setup -----
-      const ambient = new THREE.AmbientLight(0xffffff, 0.55);
+      // ----- Lights: black-and-white studio light with one blue rim (22.11.2026) -----
+      const ambient = new THREE.AmbientLight(0xffffff, 0.4);
       scene.add(ambient);
 
-      const key = new THREE.DirectionalLight(0xfff2dc, 2.4);
-      key.position.set(0.5, 0.45, 0.45);
+      const key = new THREE.DirectionalLight(0xffffff, 3.8);
+      key.position.set(0.55, 0.6, 0.5);
       scene.add(key);
 
-      const fill = new THREE.DirectionalLight(0xcbd3ff, 0.9);
+      const fill = new THREE.DirectionalLight(0xffffff, 0.35);
       fill.position.set(-0.45, 0.20, 0.30);
       scene.add(fill);
 
-      const rim = new THREE.DirectionalLight(0xb0c0ff, 1.4);
-      rim.position.set(-0.10, 0.35, -0.50);
+      const rim = new THREE.DirectionalLight(0x2d6bff, 2.4);
+      rim.position.set(-0.30, 0.35, -0.50);
       scene.add(rim);
+
+      const top = new THREE.DirectionalLight(0xffffff, 1.5);
+      top.position.set(0.40, 0.70, -0.60);
+      scene.add(top);
 
       // ----- LCD canvas (drawn each frame, used as a CanvasTexture) -----
       // 5:1 aspect ratio matches the model's 49.14mm × 9.72mm LCD glass plane
