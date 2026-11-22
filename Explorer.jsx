@@ -56,7 +56,7 @@ function Explorer(){
         <p className="lede">Every part, what it does, and its spec.</p>
       </header>
 
-      <div className="explorer">
+      <div className="explorer reveal">
         <div ref={stageRef} className={'explorer-stage' + (active ? ' has-active' : '')}>
           <img className="exploded" src="./exploded.png" alt="Exploded view of the Verigate device"/>
           {activeHot && <span className="spotlight" style={{left: activeHot.left, top: activeHot.top}}></span>}

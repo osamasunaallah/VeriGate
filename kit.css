@@ -172,7 +172,7 @@ sup{ line-height:0; position:relative; vertical-align:baseline; top:-.5em; }
 .cap::before, .cap::after, .cap-shine, .prob-shine, .prob-glow, .contact-bloom, .contact-grid,
 .spotlight, .hp-bg, .hp-bg-ok, .video-glow{ display: none !important; }
 /* the one light: a white spotlight behind the hero device */
-.hp-halo{ background: radial-gradient(closest-side, rgba(255,255,255,.30), rgba(255,255,255,.08) 52%, transparent 74%) !important; }
+.hp-halo{ background: radial-gradient(closest-side, rgba(255,255,255,.14), rgba(255,255,255,.04) 52%, transparent 74%) !important; }
 .hp.is-approved .hp-halo{ background: radial-gradient(closest-side, rgba(255,255,255,.34), rgba(255,255,255,.09) 52%, transparent 74%) !important; }
 .div-glow{ background: var(--line-2) !important; }
 .arch, .arch-node, .cap, .contact-card, .explorer-panel, .prob, .step, .solution-points li{ background: var(--surface) !important; }
@@ -202,3 +202,23 @@ sup{ line-height:0; position:relative; vertical-align:baseline; top:-.5em; }
 .kit-nav{ background: rgba(10,10,10,.86) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 .kit-nav.scrolled{ background: rgba(10,10,10,.94) !important; }
 .display-2 em, h1 em, h2 em, .serif-italic{ color: var(--pop-ink) !important; }
+
+/* ---------- 22.11.2026 (Osama): one entrance for everything, a lit hero, a grain texture ---------- */
+/* one entrance: fade up 28px, .7s / .8s, 80 ms stagger (same as .reveal) */
+.prob{
+  transform: translate3d(0, 28px, 0) !important;
+  transition: opacity .7s var(--easing-out), transform .8s var(--easing-out), border-color .35s var(--easing), box-shadow .45s var(--easing) !important;
+  transition-delay: calc(var(--idx, 0) * 80ms) !important;
+}
+.prob-grid.is-spread .prob{ transform: translate3d(0, 0, 0) !important; }
+.prob-grid.is-spread .prob:hover, .cap:hover, .step:hover, .solution-points li:hover{ transform: translate3d(0, -4px, 0) !important; }
+.reveal-left, .reveal-right{ transform: translate3d(0, 28px, 0); }
+.reveal-left.in, .reveal-right.in{ transform: translate3d(0, 0, 0); }
+/* fine grain on the page background (static, drawn once) */
+.ambient{
+  background-color: var(--bg) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E") !important;
+  background-repeat: repeat !important;
+}
+/* the 3D frame fades out at its lower edge so the lit floor never shows a hard line */
+.hp-device-3d canvas{ -webkit-mask-image: linear-gradient(180deg, #000 78%, transparent 99%); mask-image: linear-gradient(180deg, #000 78%, transparent 99%); }

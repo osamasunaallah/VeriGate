@@ -49,13 +49,20 @@ function DeviceWithLCD({
       if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.12;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       mount.appendChild(renderer.domElement);
+      if (window.RoomEnvironment) {
+        const pmrem = new THREE.PMREMGenerator(renderer);
+        scene.environment = pmrem.fromScene(new window.RoomEnvironment(), 0.04).texture;
+        pmrem.dispose();
+      }
       renderer.domElement.style.display = 'block';
       renderer.domElement.style.width = '100%';
       renderer.domElement.style.height = '100%';
-      const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+      const ambient = new THREE.AmbientLight(0xffffff, 0.22);
       scene.add(ambient);
-      const key = new THREE.DirectionalLight(0xffffff, 3.8);
+      const key = new THREE.DirectionalLight(0xffffff, 2.6);
       key.position.set(0.55, 0.6, 0.5);
       scene.add(key);
       const fill = new THREE.DirectionalLight(0xffffff, 0.35);
@@ -67,6 +74,40 @@ function DeviceWithLCD({
       const top = new THREE.DirectionalLight(0xffffff, 1.5);
       top.position.set(0.40, 0.70, -0.60);
       scene.add(top);
+      const lamp = new THREE.SpotLight(0xffffff, 12, 0, Math.PI / 10, 0.5, 0);
+      lamp.position.set(0.0, 0.36, 0.06);
+      lamp.target.position.set(0, -0.05, 0);
+      lamp.castShadow = true;
+      lamp.shadow.mapSize.set(1024, 1024);
+      lamp.shadow.camera.near = 0.05;
+      lamp.shadow.camera.far = 1.2;
+      lamp.shadow.bias = -0.0004;
+      lamp.shadow.radius = 6;
+      scene.add(lamp);
+      scene.add(lamp.target);
+      const fadeCv = document.createElement('canvas');
+      fadeCv.width = fadeCv.height = 256;
+      const fctx = fadeCv.getContext('2d'),
+        fg = fctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+      fg.addColorStop(0, '#fff');
+      fg.addColorStop(.45, '#aaa');
+      fg.addColorStop(.8, '#333');
+      fg.addColorStop(1, '#000');
+      fctx.fillStyle = fg;
+      fctx.fillRect(0, 0, 256, 256);
+      const floor = new THREE.Mesh(new THREE.CircleGeometry(0.075, 64), new THREE.MeshStandardMaterial({
+        color: 0x1c1c1c,
+        roughness: 1,
+        metalness: 0,
+        envMapIntensity: 0,
+        transparent: true,
+        alphaMap: new THREE.CanvasTexture(fadeCv),
+        depthWrite: false
+      }));
+      floor.rotation.x = -Math.PI / 2;
+      floor.receiveShadow = true;
+      floor.visible = false;
+      scene.add(floor);
       const LCD_W = 1024,
         LCD_H = 220;
       const lcdCanvas = document.createElement('canvas');
@@ -105,6 +146,14 @@ function DeviceWithLCD({
             lcdMesh.material = lcdMat;
           }
         });
+        model.traverse(o => {
+          if (!o.isMesh || o === lcdMesh) return;
+          o.castShadow = true;
+          if (o.material && 'envMapIntensity' in o.material) o.material.envMapIntensity = 0.5;
+        });
+        model.updateMatrixWorld(true);
+        floor.position.y = new THREE.Box3().setFromObject(model).min.y - 0.0005;
+        floor.visible = true;
         scene.add(model);
         stateRef.current.model = model;
         stateRef.current.lcdMesh = lcdMesh;
@@ -163,6 +212,8 @@ function DeviceWithLCD({
       window.addEventListener('pointercancel', onPointerUp);
       let lastLcdTime = 0;
       let lastChapterIdx = -1;
+      let spin = 0,
+        lastSpinT = 0;
       const LCD_INTERVAL = 1000 / 20;
       let onScreen = true;
       const vis = typeof IntersectionObserver !== 'undefined' ? new IntersectionObserver(([e]) => {
@@ -193,7 +244,10 @@ function DeviceWithLCD({
         if (model) {
           dragYaw += (dragYawT - dragYaw) * 0.16;
           dragPitch += (dragPitchT - dragPitch) * 0.16;
-          const idle = Math.sin(tMs * 0.0005) * 0.08;
+          const dt = lastSpinT ? Math.min(0.05, (tMs - lastSpinT) / 1000) : 0;
+          lastSpinT = tMs;
+          spin += dt * 0.35;
+          const idle = spin;
           const baseY = rotation && typeof rotation.y === 'number' ? rotation.y : 0;
           const baseX = rotation && typeof rotation.x === 'number' ? rotation.x : 0;
           model.rotation.y = baseY + idle + dragYaw;
@@ -3433,7 +3487,7 @@ function Explorer() {
   }, "No mystery"), "."), React.createElement("p", {
     className: "lede"
   }, "Every part, what it does, and its spec.")), React.createElement("div", {
-    className: "explorer"
+    className: "explorer reveal"
   }, React.createElement("div", {
     ref: stageRef,
     className: 'explorer-stage' + (active ? ' has-active' : '')
