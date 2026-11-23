@@ -3,327 +3,18 @@
 
 /* ---- DeviceWithLCD ---- */
 (function(){
-function DeviceWithLCD({
-  activeChapter = 0,
-  chapters = [],
-  rotation,
-  className = ''
-}) {
-  const mountRef = React.useRef(null);
-  const stateRef = React.useRef({});
-  const propsRef = React.useRef({
-    activeChapter,
-    chapters,
-    rotation
-  });
-  React.useEffect(() => {
-    propsRef.current = {
-      activeChapter,
-      chapters,
-      rotation
-    };
-  }, [activeChapter, chapters, rotation]);
-  React.useEffect(() => {
-    let alive = true;
-    let raf = 0;
-    const start = () => {
-      const THREE = window.THREE;
-      const GLTFLoader = window.GLTFLoader;
-      if (!THREE || !GLTFLoader || !mountRef.current) {
-        return;
-      }
-      const mount = mountRef.current;
-      const initialW = Math.max(mount.clientWidth, 200);
-      const initialH = Math.max(mount.clientHeight, 200);
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(28, initialW / initialH, 0.001, 50);
-      camera.position.set(0.18, 0.04, 0.20);
-      camera.lookAt(0, 0, 0);
-      const renderer = new THREE.WebGLRenderer({
-        antialias: true,
-        alpha: true,
-        powerPreference: 'high-performance'
-      });
-      renderer.setSize(initialW, initialH);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-      if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.12;
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      mount.appendChild(renderer.domElement);
-      if (window.RoomEnvironment) {
-        const pmrem = new THREE.PMREMGenerator(renderer);
-        scene.environment = pmrem.fromScene(new window.RoomEnvironment(), 0.04).texture;
-        pmrem.dispose();
-      }
-      renderer.domElement.style.display = 'block';
-      renderer.domElement.style.width = '100%';
-      renderer.domElement.style.height = '100%';
-      const ambient = new THREE.AmbientLight(0xffffff, 0.22);
-      scene.add(ambient);
-      const key = new THREE.DirectionalLight(0xffffff, 2.6);
-      key.position.set(0.55, 0.6, 0.5);
-      scene.add(key);
-      const fill = new THREE.DirectionalLight(0xffffff, 0.35);
-      fill.position.set(-0.45, 0.20, 0.30);
-      scene.add(fill);
-      const rim = new THREE.DirectionalLight(0x2d6bff, 2.4);
-      rim.position.set(-0.30, 0.35, -0.50);
-      scene.add(rim);
-      const top = new THREE.DirectionalLight(0xffffff, 1.5);
-      top.position.set(0.40, 0.70, -0.60);
-      scene.add(top);
-      const lamp = new THREE.SpotLight(0xffffff, 12, 0, Math.PI / 10, 0.5, 0);
-      lamp.position.set(0.0, 0.36, 0.06);
-      lamp.target.position.set(0, -0.05, 0);
-      lamp.castShadow = true;
-      lamp.shadow.mapSize.set(1024, 1024);
-      lamp.shadow.camera.near = 0.05;
-      lamp.shadow.camera.far = 1.2;
-      lamp.shadow.bias = -0.0004;
-      lamp.shadow.radius = 6;
-      scene.add(lamp);
-      scene.add(lamp.target);
-      const fadeCv = document.createElement('canvas');
-      fadeCv.width = fadeCv.height = 256;
-      const fctx = fadeCv.getContext('2d'),
-        fg = fctx.createRadialGradient(128, 128, 0, 128, 128, 128);
-      fg.addColorStop(0, '#fff');
-      fg.addColorStop(.45, '#aaa');
-      fg.addColorStop(.8, '#333');
-      fg.addColorStop(1, '#000');
-      fctx.fillStyle = fg;
-      fctx.fillRect(0, 0, 256, 256);
-      const floor = new THREE.Mesh(new THREE.CircleGeometry(0.075, 64), new THREE.MeshStandardMaterial({
-        color: 0x1c1c1c,
-        roughness: 1,
-        metalness: 0,
-        envMapIntensity: 0,
-        transparent: true,
-        alphaMap: new THREE.CanvasTexture(fadeCv),
-        depthWrite: false
-      }));
-      floor.rotation.x = -Math.PI / 2;
-      floor.receiveShadow = true;
-      floor.visible = false;
-      scene.add(floor);
-      const LCD_W = 1024,
-        LCD_H = 220;
-      const lcdCanvas = document.createElement('canvas');
-      lcdCanvas.width = LCD_W;
-      lcdCanvas.height = LCD_H;
-      const lcdCtx = lcdCanvas.getContext('2d');
-      const lcdTexture = new THREE.CanvasTexture(lcdCanvas);
-      if (THREE.SRGBColorSpace) lcdTexture.colorSpace = THREE.SRGBColorSpace;
-      lcdTexture.flipY = true;
-      lcdTexture.anisotropy = 8;
-      lcdTexture.minFilter = THREE.LinearFilter;
-      lcdTexture.magFilter = THREE.LinearFilter;
-      let lcdMesh = null;
-      let model = null;
-      const loader = new GLTFLoader();
-      loader.load('./verigate-device.glb?v=21', gltf => {
-        if (!alive) return;
-        model = gltf.scene;
-        const box = new THREE.Box3().setFromObject(model);
-        const center = box.getCenter(new THREE.Vector3());
-        model.position.sub(center);
-        const size = box.getSize(new THREE.Vector3());
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const targetMax = 0.10;
-        const fitScale = targetMax / maxDim;
-        model.scale.setScalar(fitScale);
-        model.traverse(obj => {
-          if (!obj.isMesh) return;
-          if (obj.name === 'LCD_Screen_Plane') {
-            lcdMesh = obj;
-            const lcdMat = new THREE.MeshBasicMaterial({
-              map: lcdTexture,
-              toneMapped: false,
-              transparent: false
-            });
-            lcdMesh.material = lcdMat;
-          }
-        });
-        model.traverse(o => {
-          if (!o.isMesh || o === lcdMesh) return;
-          o.castShadow = true;
-          if (o.material && 'envMapIntensity' in o.material) o.material.envMapIntensity = 0.5;
-        });
-        model.updateMatrixWorld(true);
-        floor.position.y = new THREE.Box3().setFromObject(model).min.y - 0.0005;
-        floor.visible = true;
-        scene.add(model);
-        stateRef.current.model = model;
-        stateRef.current.lcdMesh = lcdMesh;
-      }, undefined, err => {
-        console.error('GLB load error:', err);
-      });
-      const onResize = () => {
-        const w = Math.max(mount.clientWidth, 200);
-        const h = Math.max(mount.clientHeight, 200);
-        camera.aspect = w / h;
-        camera.updateProjectionMatrix();
-        renderer.setSize(w, h);
-      };
-      window.addEventListener('resize', onResize);
-      let resizeObs = null;
-      if (typeof ResizeObserver !== 'undefined') {
-        resizeObs = new ResizeObserver(onResize);
-        resizeObs.observe(mount);
-      }
-      let dragging = false;
-      let dragStartX = 0,
-        dragStartY = 0;
-      let dragYaw = 0,
-        dragPitch = 0;
-      let dragYawT = 0,
-        dragPitchT = 0;
-      let savedYaw = 0,
-        savedPitch = 0;
-      const onPointerDown = e => {
-        if (e.button !== undefined && e.button !== 0) return;
-        dragging = true;
-        dragStartX = e.clientX;
-        dragStartY = e.clientY;
-        savedYaw = dragYaw;
-        savedPitch = dragPitch;
-        try {
-          renderer.domElement.setPointerCapture(e.pointerId);
-        } catch (_) {}
-      };
-      const onPointerMove = e => {
-        if (!dragging) return;
-        const dx = e.clientX - dragStartX;
-        const dy = e.clientY - dragStartY;
-        dragYawT = savedYaw + Math.max(-1.6, Math.min(1.6, dx * 0.005));
-        dragPitchT = savedPitch + Math.max(-0.8, Math.min(0.8, dy * 0.004));
-      };
-      const onPointerUp = () => {
-        if (!dragging) return;
-        dragging = false;
-        dragYawT = 0;
-        dragPitchT = 0;
-      };
-      renderer.domElement.addEventListener('pointerdown', onPointerDown);
-      window.addEventListener('pointermove', onPointerMove);
-      window.addEventListener('pointerup', onPointerUp);
-      window.addEventListener('pointercancel', onPointerUp);
-      let lastLcdTime = 0;
-      let lastChapterIdx = -1;
-      let spin = 0,
-        lastSpinT = 0;
-      const LCD_INTERVAL = 1000 / 20;
-      let onScreen = true;
-      const vis = typeof IntersectionObserver !== 'undefined' ? new IntersectionObserver(([e]) => {
-        onScreen = e.isIntersecting;
-      }, {
-        rootMargin: '80px'
-      }) : null;
-      if (vis) vis.observe(mount);
-      stateRef.current.vis = vis;
-      const animate = t => {
-        if (!alive) return;
-        raf = requestAnimationFrame(animate);
-        if (!onScreen || document.hidden) return;
-        const tMs = t || performance.now();
-        const {
-          activeChapter,
-          chapters,
-          rotation
-        } = propsRef.current;
-        const chap = chapters && chapters.length ? chapters[Math.max(0, Math.min(chapters.length - 1, activeChapter))] : {};
-        const chapterChanged = activeChapter !== lastChapterIdx;
-        if (chapterChanged || tMs - lastLcdTime > LCD_INTERVAL) {
-          drawLCD(lcdCtx, lcdCanvas, chap, tMs);
-          lcdTexture.needsUpdate = true;
-          lastLcdTime = tMs;
-          lastChapterIdx = activeChapter;
-        }
-        if (model) {
-          dragYaw += (dragYawT - dragYaw) * 0.16;
-          dragPitch += (dragPitchT - dragPitch) * 0.16;
-          const dt = lastSpinT ? Math.min(0.05, (tMs - lastSpinT) / 1000) : 0;
-          lastSpinT = tMs;
-          spin += dt * 0.35;
-          const idle = spin;
-          const baseY = rotation && typeof rotation.y === 'number' ? rotation.y : 0;
-          const baseX = rotation && typeof rotation.x === 'number' ? rotation.x : 0;
-          model.rotation.y = baseY + idle + dragYaw;
-          model.rotation.x = baseX + dragPitch * 0.6;
-          model.position.y = Math.sin(tMs * 0.0009) * 0.0025;
-        }
-        renderer.render(scene, camera);
-      };
-      animate(0);
-      stateRef.current = {
-        ...stateRef.current,
-        renderer,
-        scene,
-        camera,
-        lcdCanvas,
-        lcdCtx,
-        lcdTexture,
-        onResize,
-        resizeObs,
-        onPointerDown,
-        onPointerMove,
-        onPointerUp
-      };
-    };
-    if (window.__threeReady) start();else window.addEventListener('threeready', start, {
-      once: true
-    });
-    return () => {
-      alive = false;
-      if (raf) cancelAnimationFrame(raf);
-      const s = stateRef.current;
-      if (s.onResize) window.removeEventListener('resize', s.onResize);
-      if (s.resizeObs) s.resizeObs.disconnect();
-      if (s.vis) s.vis.disconnect();
-      if (s.renderer) {
-        if (s.onPointerDown) s.renderer.domElement.removeEventListener('pointerdown', s.onPointerDown);
-        s.renderer.dispose();
-        if (s.renderer.domElement.parentNode) {
-          s.renderer.domElement.parentNode.removeChild(s.renderer.domElement);
-        }
-      }
-      if (s.onPointerMove) window.removeEventListener('pointermove', s.onPointerMove);
-      if (s.onPointerUp) {
-        window.removeEventListener('pointerup', s.onPointerUp);
-        window.removeEventListener('pointercancel', s.onPointerUp);
-      }
-      if (s.lcdTexture) s.lcdTexture.dispose();
-      if (s.scene) {
-        s.scene.traverse(obj => {
-          if (obj.isMesh) {
-            if (obj.geometry) obj.geometry.dispose();
-            if (obj.material) {
-              if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose && m.dispose());else obj.material.dispose && obj.material.dispose();
-            }
-          }
-        });
-      }
-    };
-  }, []);
-  return React.createElement("div", {
-    ref: mountRef,
-    className: 'dwl-mount ' + (className || ''),
-    style: {
-      width: '100%',
-      height: '100%',
-      touchAction: 'pan-y',
-      cursor: 'grab'
-    }
-  });
-}
 function drawLCD(ctx, canvas, chap, time) {
   const w = canvas.width,
     h = canvas.height;
   const isApproved = chap && chap.state === 'approved';
+  const isWarn = chap && chap.state === 'warn';
   const bg = ctx.createRadialGradient(w * 0.5, h * 0.35, 50, w * 0.5, h * 0.35, w * 0.7);
-  if (isApproved) {
+  if (isWarn) {
+    bg.addColorStop(0.00, '#D8463B');
+    bg.addColorStop(0.30, '#B0302A');
+    bg.addColorStop(0.65, '#7E1D1B');
+    bg.addColorStop(1.00, '#561312');
+  } else if (isApproved) {
     bg.addColorStop(0.00, '#2DD279');
     bg.addColorStop(0.30, '#1aa05a');
     bg.addColorStop(0.65, '#0d6e3a');
@@ -351,13 +42,13 @@ function drawLCD(ctx, canvas, chap, time) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = '700 90px "IBM Plex Mono", "Menlo", "Consolas", monospace';
-  ctx.shadowColor = isApproved ? 'rgba(170,255,200,0.9)' : 'rgba(170,210,255,0.9)';
+  ctx.shadowColor = isWarn ? 'rgba(255,190,180,0.9)' : isApproved ? 'rgba(170,255,200,0.9)' : 'rgba(170,210,255,0.9)';
   ctx.shadowBlur = 26;
-  ctx.fillStyle = isApproved ? '#E8FFEF' : '#E0EBFF';
+  ctx.fillStyle = isWarn ? '#FFECE8' : isApproved ? '#E8FFEF' : '#E0EBFF';
   ctx.fillText(line1 + cursor, w / 2, h * 0.36);
   ctx.font = '600 56px "IBM Plex Mono", "Menlo", "Consolas", monospace';
   ctx.shadowBlur = 18;
-  ctx.fillStyle = isApproved ? '#C8F5DA' : '#B5CDFF';
+  ctx.fillStyle = isWarn ? '#FFC9C0' : isApproved ? '#C8F5DA' : '#B5CDFF';
   ctx.fillText(line2, w / 2, h * 0.74);
   const period = 2800;
   const beamH = 70;
@@ -375,8 +66,630 @@ function drawLCD(ctx, canvas, chap, time) {
   ctx.fillStyle = vig;
   ctx.fillRect(0, 0, w, h);
 }
-window.DeviceWithLCD = DeviceWithLCD;
 window.drawLCD = drawLCD;
+})();
+
+/* ---- DeviceTour ---- */
+(function(){
+function tourClamp(v, a, b) {
+  return v < a ? a : v > b ? b : v;
+}
+function tourEase(t) {
+  t = tourClamp(t, 0, 1);
+  return t * t * (3 - 2 * t);
+}
+function tourWin(p, a, b) {
+  return tourEase((p - a) / (b - a));
+}
+const TOUR_PARTS = {
+  tray: {
+    win: [0.04, 0.14],
+    off: [0, -0.012, -0.075]
+  },
+  mcu: {
+    win: [0.14, 0.28],
+    off: [-0.006, 0.006, -0.03]
+  },
+  rc522: {
+    win: [0.28, 0.42],
+    off: [0.004, -0.022, 0.035]
+  },
+  lcd: {
+    win: [0.42, 0.56],
+    off: [0, 0.03, 0.06]
+  },
+  battery: {
+    win: [0.56, 0.66],
+    off: [0.035, -0.04, 0.012]
+  },
+  front: {
+    win: [0.74, 0.86],
+    off: [0, 0, 0.1]
+  }
+};
+const TOUR_WIRES_WIN = [0.62, 0.74];
+const TOUR_POWER_AT = 0.9;
+function DeviceTour() {
+  const mountRef = React.useRef(null);
+  const btnRef = React.useRef(null);
+  React.useEffect(() => {
+    let alive = true,
+      raf = 0;
+    const off = [];
+    const on = (t, ev, fn, o) => {
+      t.addEventListener(ev, fn, o);
+      off.push(() => t.removeEventListener(ev, fn, o));
+    };
+    const start = () => {
+      const THREE = window.THREE;
+      const mount = mountRef.current,
+        btn = btnRef.current;
+      if (!THREE || !window.GLTFLoader || !mount || !alive) return;
+      const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const D = 0.5,
+        FOV = 28;
+      const H = 2 * D * Math.tan(FOV * Math.PI / 360);
+      let vw = innerWidth,
+        vh = innerHeight;
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(FOV, vw / vh, 0.01, 5);
+      camera.position.set(0, 0, D);
+      camera.lookAt(0, 0, 0);
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        powerPreference: 'high-performance'
+      });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+      renderer.setSize(vw, vh);
+      if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.12;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.domElement.style.cssText = 'display:block;width:100%;height:100%';
+      mount.appendChild(renderer.domElement);
+      if (window.RoomEnvironment) {
+        const pmrem = new THREE.PMREMGenerator(renderer);
+        scene.environment = pmrem.fromScene(new window.RoomEnvironment(), 0.04).texture;
+        pmrem.dispose();
+      }
+      scene.add(new THREE.AmbientLight(0xffffff, 0.22));
+      const work = new THREE.HemisphereLight(0xffffff, 0x1a2440, 0);
+      scene.add(work);
+      const key = new THREE.DirectionalLight(0xffffff, 2.6);
+      key.position.set(0.55, 0.6, 0.5);
+      scene.add(key);
+      const fill = new THREE.DirectionalLight(0xffffff, 0.35);
+      fill.position.set(-0.45, 0.2, 0.3);
+      scene.add(fill);
+      const rim = new THREE.DirectionalLight(0x2d6bff, 2.4);
+      rim.position.set(-0.3, 0.35, -0.5);
+      scene.add(rim);
+      const topL = new THREE.DirectionalLight(0xffffff, 1.5);
+      topL.position.set(0.4, 0.7, -0.6);
+      scene.add(topL);
+      const stage = new THREE.Group();
+      scene.add(stage);
+      const spinner = new THREE.Group();
+      stage.add(spinner);
+      const lamp = new THREE.SpotLight(0xffffff, 14, 0, 0.215, 0.18, 0);
+      lamp.position.set(0, 0.36, 0.02);
+      lamp.target.position.set(0, -0.05, 0);
+      lamp.castShadow = true;
+      lamp.shadow.mapSize.set(2048, 2048);
+      lamp.shadow.camera.near = 0.05;
+      lamp.shadow.camera.far = 1;
+      lamp.shadow.bias = -0.0002;
+      lamp.shadow.normalBias = 0.0004;
+      lamp.shadow.radius = 2.5;
+      spinner.add(lamp);
+      spinner.add(lamp.target);
+      const fadeCv = document.createElement('canvas');
+      fadeCv.width = fadeCv.height = 256;
+      const fctx = fadeCv.getContext('2d'),
+        fg = fctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+      fg.addColorStop(0, '#fff');
+      fg.addColorStop(.62, '#fff');
+      fg.addColorStop(.85, '#555');
+      fg.addColorStop(1, '#000');
+      fctx.fillStyle = fg;
+      fctx.fillRect(0, 0, 256, 256);
+      const floorMat = new THREE.MeshStandardMaterial({
+        color: 0x262626,
+        roughness: 1,
+        metalness: 0,
+        envMapIntensity: 0,
+        transparent: true,
+        alphaMap: new THREE.CanvasTexture(fadeCv),
+        depthWrite: false,
+        opacity: 1
+      });
+      const floor = new THREE.Mesh(new THREE.CircleGeometry(0.15, 96), floorMat);
+      floor.rotation.x = -Math.PI / 2;
+      floor.receiveShadow = true;
+      floor.position.y = -0.05;
+      spinner.add(floor);
+      const lcdCanvas = document.createElement('canvas');
+      lcdCanvas.width = 1024;
+      lcdCanvas.height = 220;
+      const lcdCtx = lcdCanvas.getContext('2d');
+      const lcdTex = new THREE.CanvasTexture(lcdCanvas);
+      if (THREE.SRGBColorSpace) lcdTex.colorSpace = THREE.SRGBColorSpace;
+      lcdTex.anisotropy = 8;
+      lcdTex.minFilter = THREE.LinearFilter;
+      let model = null,
+        rocker = null,
+        switchAnchor = null,
+        wires = [];
+      const parts = {};
+      const loader = new window.GLTFLoader();
+      loader.load('./verigate-device.glb?v=21', gltf => {
+        if (!alive) return;
+        model = gltf.scene;
+        const box = new THREE.Box3().setFromObject(model);
+        const c = box.getCenter(new THREE.Vector3()),
+          sz = box.getSize(new THREE.Vector3());
+        const fit = 0.10 / Math.max(sz.x, sz.y, sz.z);
+        model.scale.setScalar(fit);
+        model.position.copy(c).multiplyScalar(-fit);
+        const byName = {};
+        model.traverse(o => {
+          if (o.isMesh) byName[o.name] = o;
+        });
+        const bodyMat = byName.Verigate_Body.material;
+        byName.Verigate_Body.visible = false;
+        const mk = (parent, w, h, d, mat, x, y, z) => {
+          const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+          m.position.set(x, y, z);
+          m.castShadow = true;
+          parent.add(m);
+          return m;
+        };
+        const std = (color, rough, metal) => new THREE.MeshStandardMaterial({
+          color,
+          roughness: rough,
+          metalness: metal || 0,
+          envMapIntensity: 0.5
+        });
+        const group = name => {
+          const g = new THREE.Group();
+          model.add(g);
+          parts[name] = {
+            group: g,
+            e: 0
+          };
+          return g;
+        };
+        const T = 0.002;
+        const tray = group('tray');
+        mk(tray, 0.090, 0.092, T, bodyMat, 0, 0, -0.0215);
+        mk(tray, T, 0.092, 0.043, bodyMat, -0.044, 0, -0.0005);
+        mk(tray, T, 0.092, 0.043, bodyMat, 0.044, 0, -0.0005);
+        mk(tray, 0.086, T, 0.043, bodyMat, 0, 0.045, -0.0005);
+        mk(tray, 0.086, T, 0.043, bodyMat, 0, -0.045, -0.0005);
+        tray.add(byName.Verigate_Switch_Frame);
+        const rk = byName.Verigate_Switch_Rocker;
+        rk.geometry.computeBoundingBox();
+        rk.updateMatrix();
+        const rkC = rk.geometry.boundingBox.clone().applyMatrix4(rk.matrix).getCenter(new THREE.Vector3());
+        rocker = new THREE.Group();
+        rocker.position.copy(rkC);
+        tray.add(rocker);
+        [rk, byName.Verigate_Switch_I, byName.Verigate_Switch_O].forEach(m => {
+          rocker.add(m);
+          m.position.sub(rkC);
+        });
+        switchAnchor = new THREE.Object3D();
+        switchAnchor.position.set(0.0485, 0.0212, 0);
+        tray.add(switchAnchor);
+        const front = group('front');
+        mk(front, 0.090, 0.092, T, bodyMat, 0, 0, 0.0215);
+        ['Verigate_SCAN_Text', 'Verigate_LCD_Bezel', 'Verigate_LCD_Screen', 'LCD_Screen_Plane'].forEach(n => front.add(byName[n]));
+        byName.LCD_Screen_Plane.material = new THREE.MeshBasicMaterial({
+          map: lcdTex,
+          toneMapped: false
+        });
+        const black = std(0x0b0c0f, 0.55),
+          silver = std(0xb9bec6, 0.3, 0.9),
+          gold = std(0xc9a24a, 0.35, 0.8);
+        const mcu = group('mcu');
+        mk(mcu, 0.0686, 0.0534, 0.0016, std(0x0f7f8c, 0.5), -0.004, 0.0, -0.0127);
+        mk(mcu, 0.013, 0.013, 0.0016, black, 0.004, -0.004, -0.0111);
+        mk(mcu, 0.009, 0.0075, 0.0034, silver, -0.0335, 0.012, -0.0102);
+        mk(mcu, 0.010, 0.009, 0.010, black, -0.0335, -0.014, -0.0069);
+        mk(mcu, 0.046, 0.0025, 0.0085, black, 0.002, 0.0245, -0.0077);
+        mk(mcu, 0.040, 0.0025, 0.0085, black, 0.006, -0.0245, -0.0077);
+        mk(mcu, 0.005, 0.005, 0.0016, silver, 0.020, 0.012, -0.0111);
+        const rc = group('rc522');
+        mk(rc, 0.060, 0.040, 0.0016, std(0x1d4fbf, 0.45), 0, -0.020, 0.0172);
+        const cu = std(0xc27a3a, 0.35, 0.85);
+        [[0.034, 0.0012, -0.0045, -0.0055], [0.034, 0.0012, -0.0045, -0.0345], [0.0012, 0.03, -0.0215, -0.020], [0.0012, 0.03, 0.0125, -0.020]].forEach(([w, h, x, y]) => mk(rc, w, h, 0.0004, cu, x, y, 0.0182));
+        mk(rc, 0.006, 0.006, 0.0012, black, 0.021, -0.016, 0.0186);
+        mk(rc, 0.020, 0.0025, 0.0025, black, 0.018, -0.036, 0.0164);
+        const lcd = group('lcd');
+        mk(lcd, 0.080, 0.036, 0.0016, std(0x1f7a3e, 0.5), 0, 0.021, 0.0075);
+        mk(lcd, 0.071, 0.024, 0.0085, black, 0, 0.0215, 0.0126);
+        mk(lcd, 0.040, 0.0025, 0.002, gold, -0.012, 0.0365, 0.0094);
+        const bat = group('battery');
+        mk(bat, 0.0485, 0.0175, 0.0265, std(0x15161a, 0.45), 0.012, -0.0345, -0.006);
+        mk(bat, 0.020, 0.0177, 0.0267, gold, 0.022, -0.0345, -0.006);
+        mk(bat, 0.003, 0.006, 0.006, silver, 0.0375, -0.0345, -0.010);
+        mk(bat, 0.003, 0.006, 0.006, silver, 0.0375, -0.0345, -0.002);
+        const tube = (pts, color) => {
+          const curve = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(p[0], p[1], p[2])));
+          const geo = new THREE.TubeGeometry(curve, 64, 0.0006, 6, false);
+          const m = new THREE.Mesh(geo, std(color, 0.5));
+          m.castShadow = true;
+          geo.setDrawRange(0, 0);
+          model.add(m);
+          wires.push(m);
+          return m;
+        };
+        tube([[-0.012, 0.035, 0.009], [-0.02, 0.031, 0.0], [-0.016, 0.027, -0.004], [-0.01, 0.025, -0.004]], 0xd23b3b);
+        tube([[-0.006, 0.035, 0.009], [-0.008, 0.031, 0.001], [-0.002, 0.027, -0.004], [0.002, 0.025, -0.004]], 0x2d6bff);
+        tube([[0.018, -0.036, 0.016], [0.016, -0.03, 0.006], [0.012, -0.026, -0.002], [0.010, -0.0245, -0.004]], 0xe8c547);
+        tube([[0.0375, -0.034, -0.002], [0.04, -0.02, -0.004], [0.03, -0.0065, -0.004], [-0.027, -0.014, -0.0015]], 0x1a1a1a);
+        tube([[0.0375, -0.034, -0.010], [0.042, -0.024, -0.012], [0.02, -0.0005, -0.006], [-0.03, -0.014, -0.002]], 0xd23b3b);
+        Object.keys(parts).forEach(k => {
+          parts[k].base = parts[k].group.position.clone();
+          parts[k].off = new THREE.Vector3().fromArray(TOUR_PARTS[k].off);
+        });
+        model.traverse(o => {
+          if (o.isMesh && o.material && 'envMapIntensity' in o.material && o.material !== byName.LCD_Screen_Plane.material) o.material.envMapIntensity = 0.85;
+        });
+        model.userData.z0 = model.position.z;
+        floor.position.y = model.position.y - 0.046 * fit - 0.0003;
+        modelAt = performance.now();
+        spinner.add(model);
+        first = true;
+      }, undefined, err => console.error('GLB load error:', err));
+      let bird = null,
+        birdMixer = null,
+        birdLoading = false,
+        birdFit = 1,
+        lastScrollAt = 0,
+        modelAt = Infinity;
+      let finaleArmed = false,
+        birdStart = -1e9;
+      const BIRD_MS = 3600;
+      on(window, 'scroll', () => {
+        lastScrollAt = performance.now();
+      }, {
+        passive: true
+      });
+      const loadBird = () => {
+        birdLoading = true;
+        new window.GLTFLoader().load('./phoenix-bird.glb?v=40', gltf => {
+          if (!alive) return;
+          bird = gltf.scene;
+          const bb = new THREE.Box3().setFromObject(bird),
+            bs = bb.getSize(new THREE.Vector3());
+          birdFit = 0.085 / Math.max(bs.x, bs.y, bs.z);
+          const inner = new THREE.Group();
+          inner.add(bird);
+          bird.position.copy(bb.getCenter(new THREE.Vector3())).multiplyScalar(-1);
+          bird = inner;
+          bird.visible = false;
+          scene.add(bird);
+          if (gltf.animations && gltf.animations.length) {
+            birdMixer = new THREE.AnimationMixer(gltf.scene);
+            const clip = THREE.AnimationUtils.subclip(gltf.animations[0], 'flap', 96, 192, 24);
+            birdMixer.clipAction(clip).play();
+          }
+          const warm = () => {
+            try {
+              bird.visible = true;
+              bird.scale.setScalar(1e-4);
+              bird.position.set(0, 0, -0.3);
+              if (birdMixer) birdMixer.update(0.016);
+              renderer.compile(scene, camera);
+              renderer.render(scene, camera);
+              bird.visible = false;
+              if (renderer.initTexture) gltf.scene.traverse(o => {
+                if (o.isMesh && o.material) Object.values(o.material).forEach(v => {
+                  if (v && v.isTexture) renderer.initTexture(v);
+                });
+              });
+            } catch (e) {}
+          };
+          if (window.requestIdleCallback) requestIdleCallback(warm, {
+            timeout: 1500
+          });else setTimeout(warm, 300);
+        }, undefined, () => {});
+      };
+      const contactPose = () => {
+        const el = document.querySelector('.contact-slot');
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        const mid = r.top + r.height / 2;
+        if (mid > vh * 0.1 && mid < vh * 0.8) {
+          if (!finaleArmed) {
+            finaleArmed = true;
+            birdStart = performance.now() + 250;
+          }
+        } else if (r.bottom < 0 || r.top > vh) finaleArmed = false;
+        if (r.bottom < 0 || r.top > vh || !r.height) return r.top < vh * 2.5 && r.top > 0 ? {
+          soon: true
+        } : null;
+        const d = el.dataset;
+        return {
+          key: 'contact',
+          cx: r.left + r.width / 2,
+          cy: r.top + r.height / 2,
+          size: Math.min(r.width * 0.9, r.height),
+          yaw: -0.45,
+          pitch: 0.18,
+          spin: 1,
+          floor: 1,
+          lcd1: d.lcd1,
+          lcd2: d.lcd2,
+          state: d.state,
+          power: 1,
+          build: -1,
+          wantBird: true
+        };
+      };
+      const cur = {
+        x: 0,
+        y: 0,
+        s: 0.0001,
+        yaw: -0.55,
+        pitch: 0.2,
+        floor: 1,
+        power: 1,
+        shift: 0,
+        vis: 0
+      };
+      let first = false,
+        spin = 0,
+        lastT = 0,
+        powerOn = true,
+        bootAt = -9999,
+        lastLcd = 0,
+        lcdKey = '';
+      let btnShown = null,
+        btnX = -1,
+        btnY = -1,
+        btnLabelOn = null,
+        lastMode = '',
+        userPower = null,
+        lastKey = '',
+        lastTg = null;
+      const v3 = new THREE.Vector3(),
+        n3 = new THREE.Vector3();
+      window.__vgTour = {
+        toggle: () => {
+          userPower = powerOn ? 0 : 1;
+        }
+      };
+      const onResize = () => {
+        vw = innerWidth;
+        vh = innerHeight;
+        camera.aspect = vw / vh;
+        camera.updateProjectionMatrix();
+        renderer.setSize(vw, vh);
+      };
+      on(window, 'resize', onResize);
+      const animate = t => {
+        if (!alive) return;
+        raf = requestAnimationFrame(animate);
+        if (document.hidden || !model) return;
+        const dt = lastT ? Math.min(0.05, (t - lastT) / 1000) : 0.016;
+        lastT = t;
+        const st = window.__vgTarget;
+        let tg = st && st.active ? st : contactPose();
+        if (tg && tg.soon) {
+          if (!birdLoading) loadBird();
+          tg = null;
+        }
+        const mode = tg ? tg === st ? 'story' : 'contact' : 'none';
+        cur.vis += ((tg ? 1 : 0) - cur.vis) * (reduce ? 1 : 1 - Math.exp(-dt * 8));
+        if (mode !== lastMode) {
+          if (lastMode === 'none' || lastMode === '') first = true;
+          lastMode = mode;
+        }
+        mount.style.opacity = cur.vis.toFixed(3);
+        if (!tg) {
+          if (cur.vis < 0.01 || !lastTg) {
+            if (btnShown) {
+              btn.classList.remove('on');
+              btnShown = false;
+            }
+            return;
+          }
+          tg = lastTg;
+        }
+        lastTg = tg;
+        if (tg.key !== lastKey) {
+          lastKey = tg.key;
+          userPower = null;
+        }
+        const isBuild = tg.build >= 0;
+        const bp = isBuild ? tourClamp(tg.build, 0, 1) : 1;
+        const tx = (tg.cx / vw - 0.5) * H * (vw / vh);
+        const ty = -(tg.cy / vh - 0.5) * H;
+        let ts = tg.size / vh * H / 0.10 * 0.64;
+        let tyaw = tg.yaw,
+          tpitch = tg.pitch;
+        if (isBuild) {
+          const apart = vw < 700 ? 0.52 : 0.68;
+          ts *= apart + (1 - apart) * tourWin(bp, 0.74, 0.9);
+          tyaw -= 0.55 * (1 - tourWin(bp, 0.6, 0.95));
+        }
+        if (tg.spin && !reduce) {
+          spin += dt;
+          tyaw += Math.sin(spin * 0.45) * 0.42;
+        }
+        tyaw = tyaw + 2 * Math.PI * Math.round((cur.yaw - tyaw) / (2 * Math.PI));
+        const k = first || reduce ? 1 : 1 - Math.exp(-dt * 10);
+        const kr = first || reduce ? 1 : 1 - Math.exp(-dt * 6);
+        cur.x += (tx - cur.x) * k;
+        cur.y += (ty - cur.y) * k;
+        cur.s += (ts - cur.s) * k;
+        cur.yaw += (tyaw - cur.yaw) * kr;
+        cur.pitch += (tpitch - cur.pitch) * kr;
+        cur.floor += ((tg.floor || 0) - cur.floor) * kr;
+        let spread = 0;
+        Object.keys(parts).forEach(name => {
+          const P = parts[name],
+            w = TOUR_PARTS[name].win;
+          const te = isBuild ? 1 - tourWin(bp, w[0], w[1]) : 0;
+          P.e += (te - P.e) * (first || reduce ? 1 : 1 - Math.exp(-dt * 9));
+          P.group.position.copy(P.base).addScaledVector(P.off, P.e);
+          spread += P.e;
+        });
+        const wireT = isBuild ? tourWin(bp, TOUR_WIRES_WIN[0], TOUR_WIRES_WIN[1]) : 1;
+        wires.forEach(m => m.geometry.setDrawRange(0, Math.floor(m.geometry.index.count * wireT / 3) * 3));
+        cur.shift += (spread / 6 * 0.012 - cur.shift) * k;
+        work.intensity = 2.4 * Math.min(1, spread / 3);
+        let wantOn = tg.power !== 0;
+        if (isBuild) wantOn = bp >= TOUR_POWER_AT;
+        if (userPower !== null) wantOn = !!userPower;
+        if (wantOn && !powerOn) bootAt = t;
+        powerOn = wantOn;
+        cur.power += ((powerOn ? 1 : 0) - cur.power) * (reduce ? 1 : 1 - Math.exp(-dt * 10));
+        if (rocker) rocker.rotation.y += ((powerOn ? -0.32 : 0.32) - rocker.rotation.y) * (reduce ? 1 : 1 - Math.exp(-dt * 16));
+        stage.position.set(cur.x, cur.y, 0);
+        stage.scale.setScalar(cur.s);
+        spinner.rotation.set(cur.pitch, cur.yaw, 0);
+        spinner.position.y = reduce ? 0 : Math.sin(t * 0.0009) * 0.0025;
+        model.position.z = model.userData.z0 - cur.shift;
+        floorMat.opacity = cur.floor;
+        floor.visible = cur.floor > 0.02;
+        lamp.intensity = 4 + 8 * cur.floor;
+        const info = {
+          lcdLine1: tg.lcd1 || 'VERIGATE',
+          lcdLine2: tg.lcd2 || 'READY · SCAN',
+          state: tg.state || 'idle'
+        };
+        const key = info.lcdLine1 + info.lcdLine2 + info.state + (cur.power > 0.98 ? 1 : cur.power < 0.02 ? 0 : 'f') + (t - bootAt < 1500 ? 'b' : '');
+        if (key !== lcdKey || t - lastLcd > 50) {
+          drawTourLCD(lcdCtx, lcdCanvas, info, t, cur.power, t - bootAt);
+          lcdTex.needsUpdate = true;
+          lastLcd = t;
+          lcdKey = key;
+        }
+        if (!birdLoading && model && (t - lastScrollAt > 1200 && t - modelAt > 2500 || tg.wantBird)) loadBird();
+        if (bird) {
+          const fb = tg.key === 'contact' ? (t - birdStart) / BIRD_MS : -1;
+          const fly = fb > 0 && fb < 1 && !reduce;
+          if (fly !== bird.visible) bird.visible = fly;
+          if (fly) {
+            const zb = -0.32,
+              half = (D - zb) * Math.tan(FOV * Math.PI / 360);
+            const span = half * (vw / vh) + 0.12;
+            const f = fb * fb * (3 - 2 * fb) * 0.35 + fb * 0.65;
+            const yb = cur.y * (D - zb) / D;
+            bird.position.set(span - 2 * span * f, yb + 0.01 + 0.05 * f + Math.sin(f * Math.PI * 2) * 0.008, zb);
+            bird.rotation.set(0.06, Math.PI - 0.25, Math.sin(fb * Math.PI * 3) * 0.08);
+            bird.scale.setScalar(birdFit * (vw < 700 ? 0.8 : 1.15));
+            if (birdMixer) birdMixer.update(dt);
+          }
+        }
+        renderer.render(scene, camera);
+        first = false;
+        if (switchAnchor && btn) {
+          switchAnchor.getWorldPosition(v3);
+          n3.set(1, 0, 0).transformDirection(switchAnchor.matrixWorld);
+          const px = (v3.x / (H * vw / vh) + 0.5) * vw,
+            py = (-v3.y / H + 0.5) * vh;
+          const devPx = cur.s * 0.10 / H * vh;
+          const show = n3.z > 0.25 && cur.vis > 0.9 && devPx > 110 && py > 80 && py < vh - 20 && spread < 0.3;
+          if (show !== btnShown) {
+            btn.classList.toggle('on', show);
+            btn.tabIndex = show ? 0 : -1;
+            btnShown = show;
+          }
+          if (show && (Math.abs(px - btnX) > 0.3 || Math.abs(py - btnY) > 0.3)) {
+            btn.style.transform = 'translate3d(' + px.toFixed(1) + 'px,' + py.toFixed(1) + 'px,0)';
+            btnX = px;
+            btnY = py;
+          }
+          if (btnLabelOn !== powerOn) {
+            btn.setAttribute('aria-pressed', powerOn ? 'true' : 'false');
+            btn.querySelector('.tour-power-tag').textContent = powerOn ? 'Switch off' : 'Switch on';
+            btnLabelOn = powerOn;
+          }
+        }
+      };
+      raf = requestAnimationFrame(animate);
+      off.push(() => {
+        renderer.dispose();
+        if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
+        scene.traverse(o => {
+          if (o.isMesh) {
+            o.geometry && o.geometry.dispose();
+            o.material && o.material.dispose && o.material.dispose();
+          }
+        });
+        lcdTex.dispose();
+        delete window.__vgTour;
+      });
+    };
+    if (window.__threeReady) start();else on(window, 'threeready', start, {
+      once: true
+    });
+    return () => {
+      alive = false;
+      cancelAnimationFrame(raf);
+      off.forEach(f => f());
+    };
+  }, []);
+  return React.createElement(React.Fragment, null, React.createElement("div", {
+    ref: mountRef,
+    className: "tour-canvas",
+    "aria-hidden": "true"
+  }), React.createElement("button", {
+    ref: btnRef,
+    type: "button",
+    className: "tour-power",
+    tabIndex: -1,
+    "aria-pressed": "true",
+    "aria-label": "Power switch of the 3D device",
+    onClick: () => window.__vgTour && window.__vgTour.toggle()
+  }, React.createElement("span", {
+    className: "tour-power-ring",
+    "aria-hidden": "true"
+  }), React.createElement("span", {
+    className: "tour-power-tag"
+  }, "Switch off")));
+}
+function drawTourLCD(ctx, canvas, info, t, power, sinceBoot) {
+  const w = canvas.width,
+    h = canvas.height;
+  if (power < 0.02) {
+    ctx.fillStyle = '#05070c';
+    ctx.fillRect(0, 0, w, h);
+    const g = ctx.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, 'rgba(255,255,255,0.05)');
+    g.addColorStop(0.5, 'rgba(255,255,255,0)');
+    g.addColorStop(1, 'rgba(255,255,255,0.02)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    return;
+  }
+  if (sinceBoot < 1400) {
+    window.drawLCD(ctx, canvas, {
+      lcdLine1: 'VERIGATE',
+      lcdLine2: ' ',
+      state: 'idle'
+    }, 0);
+    const k = tourClamp((sinceBoot - 300) / 900, 0, 1);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(224,235,255,0.25)';
+    ctx.fillRect(w * 0.2, h * 0.68, w * 0.6, 22);
+    ctx.fillStyle = '#E0EBFF';
+    ctx.fillRect(w * 0.2, h * 0.68, w * 0.6 * k, 22);
+  } else {
+    window.drawLCD(ctx, canvas, info, t);
+  }
+  if (power < 0.99) {
+    ctx.fillStyle = 'rgba(5,7,12,' + (1 - power).toFixed(3) + ')';
+    ctx.fillRect(0, 0, w, h);
+  }
+}
+window.DeviceTour = DeviceTour;
 })();
 
 /* ---- PhoenixIntro ---- */
@@ -667,8 +980,8 @@ const NAV_LINKS = [{
   label: 'Process',
   href: '#process'
 }, {
-  label: 'Components',
-  href: '#components'
+  label: 'Inside',
+  href: '#build'
 }, {
   label: 'Contact',
   href: '#contact'
@@ -834,1016 +1147,327 @@ function Nav() {
 window.Nav = Nav;
 })();
 
-/* ---- HeroPhoto ---- */
+/* ---- Story ---- */
 (function(){
-const HERO_CHAPTERS = [{
-  eyebrow: 'One tap. One verified shipment.',
-  headlineA: 'A receiving device,',
-  headlineB: 'verified instantly.',
-  body: 'The driver taps an RFID card. The device pulls the matching shipment from the dashboard, shows it on the LCD, and lets the worker approve it in seconds.',
-  lcdLine1: 'VERIGATE',
-  lcdLine2: 'READY · SCAN',
-  state: 'idle'
+const STORY = [{
+  id: 'product',
+  len: 0.6,
+  dev: 'r',
+  yaw: -0.5,
+  pitch: 0.2,
+  size: 0.7,
+  spin: 1,
+  floor: 1,
+  cy: 0.53
 }, {
-  eyebrow: 'Inside the enclosure',
-  headlineA: 'Built around an Arduino',
-  headlineB: 'and a 13.56 MHz reader.',
-  body: 'A matte-black shell, a 16×2 LCD behind anti-glare glass, and the reader flush behind the SCAN panel.',
-  lcdLine1: 'WAITING',
-  lcdLine2: 'TAP CARD',
-  state: 'idle'
+  id: 'build',
+  len: 1.5,
+  dev: 'r',
+  yaw: -0.5,
+  pitch: 0.2,
+  size: 0.6,
+  build: 1
 }, {
-  eyebrow: 'Tap. Verified. Welcome.',
-  headlineA: 'Approved',
-  headlineB: 'in seconds.',
-  body: 'The driver taps, the device confirms: green light, gate open, and the shipment is in your ledger.',
-  lcdLine1: 'APPROVED',
-  lcdLine2: 'WELCOME',
+  id: 'problem',
+  len: 0.62,
+  dev: 'l',
+  yaw: 0.75,
+  pitch: 0.22,
+  size: 0.52,
+  lcd1: 'NO RECORD',
+  lcd2: 'PAPER ONLY',
+  state: 'warn'
+}, {
+  id: 'how',
+  len: 0.95,
+  dev: 'r',
+  yaw: -0.7,
+  pitch: 0.2,
+  size: 0.56
+}, {
+  id: 'gate',
+  len: 0.62,
+  dev: 'l',
+  yaw: 0.8,
+  pitch: 0.22,
+  size: 0.52,
+  lcd1: 'TAP CARD',
+  lcd2: 'UNDER 200 MS'
+}];
+const STORY_RUN = STORY.reduce((a, c) => a + c.len, 0);
+const BUILD_STEPS = [{
+  at: 0,
+  t: 'The shell',
+  s: 'A matte-black case with the switch on its side.'
+}, {
+  at: 0.14,
+  t: 'Arduino UNO R4',
+  s: 'The brain of the device.'
+}, {
+  at: 0.28,
+  t: 'RC522 reader',
+  s: 'Right behind the SCAN mark.'
+}, {
+  at: 0.42,
+  t: 'LCD 16×2',
+  s: 'Two lines of status.'
+}, {
+  at: 0.56,
+  t: 'Power and wires',
+  s: 'A 9 V backup battery and the wiring.'
+}, {
+  at: 0.74,
+  t: 'The SCAN panel',
+  s: 'The face closes over everything.'
+}, {
+  at: 0.88,
+  t: 'Switch it on',
+  s: 'Try the switch yourself.'
+}];
+const HOW_STEPS = [{
+  t: 'The driver taps a card.',
+  lcd1: 'WAITING',
+  lcd2: 'TAP CARD'
+}, {
+  t: 'The shipment shows on the screen.',
+  lcd1: 'MATCH FOUND',
+  lcd2: 'APPROVE?'
+}, {
+  t: 'The worker approves it.',
+  lcd1: 'APPROVED',
+  lcd2: 'WELCOME',
   state: 'approved'
 }];
-const HERO_CYCLE_MS = 4500;
-function HeroWords({
-  text,
-  on,
-  accent
-}) {
-  return text.split(' ').map((w, i) => React.createElement("span", {
-    key: i,
-    className: "hp-word"
-  }, React.createElement("span", {
-    className: 'hp-word-in' + (accent ? ' is-accent' : ''),
-    style: {
-      transitionDelay: on ? i * 55 + 260 + 'ms' : '0ms'
-    }
-  }, w)));
+function storyEase(t) {
+  t = t < 0 ? 0 : t > 1 ? 1 : t;
+  return t * t * (3 - 2 * t);
 }
-function HeroPhoto() {
-  const sectionRef = React.useRef(null);
-  const [active, setActive] = React.useState(0);
-  const [tick, setTick] = React.useState(0);
+function Story() {
+  const ref = React.useRef(null);
+  const panels = React.useRef([]);
+  const [buildStep, setBuildStep] = React.useState(0);
+  const [howStep, setHowStep] = React.useState(0);
   React.useEffect(() => {
-    let visible = true;
-    const el = sectionRef.current;
-    const io = el && 'IntersectionObserver' in window ? new IntersectionObserver(([e]) => {
-      visible = e.isIntersecting;
-    }, {
-      threshold: 0.2
-    }) : null;
-    if (io) io.observe(el);
-    const id = setInterval(() => {
-      if (visible && !document.hidden) setActive(a => (a + 1) % HERO_CHAPTERS.length);
-    }, HERO_CYCLE_MS);
-    return () => {
-      clearInterval(id);
-      if (io) io.disconnect();
+    let raf = 0,
+      alive = true,
+      lastB = -1,
+      lastH = -1;
+    const starts = [];
+    STORY.reduce((a, c, i) => {
+      starts[i] = a;
+      return a + c.len;
+    }, 0);
+    const tuck = () => {
+      const el = ref.current;
+      if (!el) return;
+      el.style.marginTop = '0px';
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      if (top > 0 && top < 200) el.style.marginTop = -top + 'px';
     };
-  }, [tick]);
-  const approved = HERO_CHAPTERS[active].state === 'approved';
+    tuck();
+    window.addEventListener('resize', tuck);
+    const frame = () => {
+      if (!alive) return;
+      raf = requestAnimationFrame(frame);
+      const el = ref.current;
+      if (!el) return;
+      const vw = innerWidth,
+        vh = innerHeight;
+      const r = el.getBoundingClientRect();
+      const U = r.height / (STORY_RUN + 1);
+      const pos = -r.top / U;
+      const wide = vw >= 900;
+      const placeOf = c => wide ? {
+        cx: (c.dev === 'r' ? 0.7 : 0.3) * vw,
+        cy: (c.cy || 0.52) * U,
+        size: Math.min(c.size * U, 0.44 * vw)
+      } : {
+        cx: 0.5 * vw,
+        cy: 0.3 * U,
+        size: Math.min(c.size * 0.64 * U, 0.9 * vw)
+      };
+      let i = 0;
+      for (let k = 0; k < STORY.length; k++) if (pos >= starts[k]) i = k;
+      const c = STORY[i],
+        u = pos - starts[i];
+      let A = placeOf(c),
+        cfg = c,
+        B = null,
+        m = 0;
+      const G = 0.2;
+      if (u > c.len - G && i < STORY.length - 1) {
+        B = STORY[i + 1];
+        m = storyEase((u - (c.len - G)) / (2 * G));
+      } else if (u < G && i > 0) {
+        B = STORY[i - 1];
+        m = storyEase((G - u) / (2 * G));
+      }
+      let P = A,
+        yaw = c.yaw,
+        pitch = c.pitch;
+      if (B) {
+        const Bp = placeOf(B);
+        P = {
+          cx: A.cx + (Bp.cx - A.cx) * m,
+          cy: A.cy + (Bp.cy - A.cy) * m,
+          size: A.size + (Bp.size - A.size) * m
+        };
+        yaw = c.yaw + (B.yaw - c.yaw) * m;
+        pitch = c.pitch + (B.pitch - c.pitch) * m;
+        if (m > 0.5) cfg = B;
+      }
+      const over = Math.max(0, pos - STORY_RUN) * U;
+      const bi = STORY.findIndex(s => s.build);
+      const bp = Math.max(0, Math.min(1, (pos - starts[bi] - 0.12) / (STORY[bi].len - 0.36)));
+      const hi = STORY.findIndex(s => s.id === 'how');
+      const hp = Math.max(0, Math.min(0.999, (pos - starts[hi] - 0.2) / (STORY[hi].len - 0.4)));
+      const hs = Math.floor(hp * HOW_STEPS.length);
+      let b = 0;
+      BUILD_STEPS.forEach((s, k) => {
+        if (bp >= s.at) b = k;
+      });
+      if (b !== lastB) {
+        lastB = b;
+        setBuildStep(b);
+      }
+      if (hs !== lastH) {
+        lastH = hs;
+        setHowStep(hs);
+      }
+      const how = cfg.id === 'how' ? HOW_STEPS[hs] : null;
+      window.__vgTarget = {
+        active: r.bottom > 0 && r.top < vh,
+        key: cfg.id,
+        cx: P.cx,
+        cy: P.cy - over + Math.max(0, r.top),
+        size: P.size,
+        yaw,
+        pitch,
+        spin: cfg.spin || 0,
+        floor: cfg.floor || 0,
+        build: cfg.build ? bp : -1,
+        lcd1: how ? how.lcd1 : cfg.lcd1,
+        lcd2: how ? how.lcd2 : cfg.lcd2,
+        state: how ? how.state || 'idle' : cfg.state,
+        power: 1,
+        wantBird: pos > 2.5
+      };
+      STORY.forEach((s, k) => {
+        const p = panels.current[k];
+        if (!p) return;
+        const lu = pos - starts[k];
+        const vin = k === 0 ? 1 : storyEase((lu - 0.06) / 0.16);
+        const vout = k === STORY.length - 1 ? 1 : 1 - storyEase((lu - (s.len - 0.24)) / 0.16);
+        const v = Math.min(vin, vout);
+        const y = (1 - vin) * 36 - (1 - vout) * 36;
+        const o = v.toFixed(3);
+        if (p.__o !== o) {
+          p.__o = o;
+          p.style.opacity = o;
+          p.style.visibility = v > 0.001 ? 'visible' : 'hidden';
+        }
+        p.style.transform = 'translate3d(0,' + y.toFixed(1) + 'px,0)';
+      });
+    };
+    raf = requestAnimationFrame(frame);
+    return () => {
+      alive = false;
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', tuck);
+      window.__vgTarget = null;
+    };
+  }, []);
+  const P = i => el => {
+    panels.current[i] = el;
+  };
+  const side = c => 'st-panel ' + (c.dev === 'r' ? 'at-l' : 'at-r');
+  let acc = 0;
+  const anchors = STORY.map(c => {
+    const top = acc;
+    acc += c.len;
+    return {
+      id: c.id === 'product' ? null : c.id,
+      top: top + (c.id === 'product' ? 0 : 0.45)
+    };
+  });
   return React.createElement("section", {
-    ref: sectionRef,
-    className: 'hp' + (approved ? ' is-approved' : ''),
-    id: "product"
-  }, React.createElement("div", {
-    className: "hp-bg",
-    "aria-hidden": "true"
-  }, React.createElement("i", {
-    className: "hp-bg-ok"
+    ref: ref,
+    className: "story",
+    id: "product",
+    style: {
+      '--run': STORY_RUN + 1
+    },
+    "aria-label": "VeriGate"
+  }, anchors.filter(a => a.id).map(a => React.createElement("span", {
+    key: a.id,
+    id: a.id,
+    className: "st-anchor",
+    style: {
+      top: 'calc(' + a.top + ' * var(--unit))'
+    }
   })), React.createElement("div", {
-    className: "hp-shell"
-  }, React.createElement("header", {
-    className: "hp-head"
+    className: "story-sticky"
   }, React.createElement("div", {
-    className: "hp-stack hp-eyebrows"
-  }, HERO_CHAPTERS.map((c, i) => React.createElement("span", {
-    key: i,
-    className: 'hp-eyebrow' + (i === active ? ' on' : ''),
-    "aria-hidden": i !== active
-  }, React.createElement("span", {
-    className: "hp-eyebrow-dot"
-  }), c.eyebrow))), React.createElement("h1", {
-    className: "hp-stack hp-headline"
-  }, HERO_CHAPTERS.map((c, i) => React.createElement("span", {
-    key: i,
-    className: 'hp-hl' + (i === active ? ' on' : ''),
-    "aria-hidden": i !== active
-  }, React.createElement("span", {
-    className: "hp-hl-line"
-  }, React.createElement(HeroWords, {
-    text: c.headlineA,
-    on: i === active
-  })), React.createElement("span", {
-    className: "hp-hl-line"
-  }, React.createElement(HeroWords, {
-    text: c.headlineB,
-    on: i === active,
-    accent: true
-  }))))), React.createElement("div", {
-    className: "hp-stack hp-ledes"
-  }, HERO_CHAPTERS.map((c, i) => React.createElement("p", {
-    key: i,
-    className: 'hp-lede' + (i === active ? ' on' : ''),
-    "aria-hidden": i !== active
-  }, c.body)))), React.createElement("div", {
-    className: "hp-stage"
-  }, React.createElement("div", {
-    className: "hp-halo",
-    "aria-hidden": "true"
-  }), React.createElement("div", {
-    className: "hp-device-wrap"
-  }, React.createElement(DeviceWithLCD, {
-    activeChapter: active,
-    chapters: HERO_CHAPTERS,
-    className: "hp-device-3d"
-  }), React.createElement("div", {
-    className: "hp-floor",
-    "aria-hidden": "true"
-  }))), React.createElement("footer", {
-    className: "hp-foot"
-  }, React.createElement("div", {
-    className: "hp-cta-row"
+    className: side(STORY[0]) + ' st-hero',
+    ref: P(0)
+  }, React.createElement("h1", {
+    className: "st-h1"
+  }, "A receiving device,", React.createElement("br", null), React.createElement("em", null, "verified instantly.")), React.createElement("p", {
+    className: "st-lede"
+  }, "The driver taps a card. The shipment shows on the screen. The worker approves it."), React.createElement("div", {
+    className: "st-cta"
   }, React.createElement("a", {
     href: "https://www.linkedin.com/in/osamasunaallah/",
     target: "_blank",
     rel: "noopener noreferrer",
     className: "btn primary big"
-  }, React.createElement("svg", {
-    viewBox: "0 0 24 24",
-    fill: "currentColor",
-    width: "16",
-    height: "16",
-    "aria-hidden": "true"
-  }, React.createElement("path", {
-    d: "M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14zM8.34 18.34V9.67H5.67v8.67h2.67zM7 8.5a1.55 1.55 0 1 0 0-3.1 1.55 1.55 0 0 0 0 3.1zm11.34 9.84v-4.75c0-2.33-1.25-3.42-2.92-3.42-1.35 0-1.95.74-2.29 1.26V9.67h-2.67v8.67h2.67v-4.29c0-1.13.21-2.22 1.61-2.22 1.38 0 1.4 1.29 1.4 2.29v4.22h2.2z"
-  })), "Connect on LinkedIn"), React.createElement("a", {
+  }, "Connect on LinkedIn"), React.createElement("a", {
     href: "#process",
     className: "btn ghost big"
-  }, React.createElement("svg", {
-    viewBox: "0 0 24 24",
-    fill: "currentColor",
-    width: "13",
-    height: "13",
-    "aria-hidden": "true"
-  }, React.createElement("path", {
-    d: "M7 4.5v15l12-7.5z"
-  })), "See it work")), React.createElement("div", {
-    className: "hp-dots",
-    role: "tablist",
-    "aria-label": "Hero chapters"
-  }, HERO_CHAPTERS.map((c, i) => React.createElement("button", {
-    key: i,
-    role: "tab",
-    "aria-selected": i === active,
-    "aria-label": 'Show chapter ' + (i + 1),
-    className: 'hp-dot' + (i === active ? ' on' : ''),
-    onClick: () => {
-      setActive(i);
-      setTick(t => t + 1);
-    }
+  }, "See it work"))), React.createElement("div", {
+    className: side(STORY[1]),
+    ref: P(1)
+  }, React.createElement("h2", {
+    className: "st-h2"
+  }, "Built ", React.createElement("em", null, "piece by piece"), "."), React.createElement("div", {
+    className: "st-build",
+    "aria-live": "polite"
   }, React.createElement("span", {
-    className: "hp-dot-bar"
+    className: "st-count"
+  }, buildStep + 1, " / ", BUILD_STEPS.length), React.createElement("b", null, BUILD_STEPS[buildStep].t), React.createElement("span", null, BUILD_STEPS[buildStep].s)), React.createElement("span", {
+    className: "st-bar",
+    "aria-hidden": "true"
   }, React.createElement("i", {
-    key: active + '-' + tick,
     style: {
-      animationDuration: HERO_CYCLE_MS + 'ms'
+      transform: 'scaleX(' + (buildStep + 1) / BUILD_STEPS.length + ')'
     }
-  }))))))), React.createElement("style", null, `
-        .hp{ position: relative; min-height: calc(100vh - 76px); min-height: calc(100dvh - 76px); display: flex; align-items: center; overflow: hidden; isolation: isolate; }
-        .hp-bg{
-          position: absolute; inset: 0; z-index: 0; pointer-events: none;
-          background:
-            radial-gradient(42% 38% at 50% 56%, rgba(124,138,255,.26), transparent 72%),
-            radial-gradient(30% 30% at 38% 50%, rgba(167,139,250,.14), transparent 70%);
-        }
-        .hp-bg-ok{
-          position: absolute; inset: 0; opacity: 0;
-          background: radial-gradient(42% 38% at 50% 56%, rgba(126,227,181,.22), transparent 72%);
-          transition: opacity .9s var(--easing);
-        }
-        .hp.is-approved .hp-bg-ok{ opacity: 1; }
-
-        .hp-shell{
-          position: relative; z-index: 1;
-          width: min(1280px, calc(100% - 32px)); margin: 0 auto;
-          min-height: calc(100vh - 76px); min-height: calc(100dvh - 76px);
-          padding: clamp(18px, 4vh, 48px) 0 clamp(22px, 4vh, 44px);
-          display: grid; grid-template-rows: auto 1fr auto; justify-items: center;
-          gap: clamp(6px, 1.4vh, 16px); text-align: center;
-        }
-        .hp-head{ display: flex; flex-direction: column; align-items: center; gap: clamp(12px, 1.6vh, 20px); width: 100%; }
-
-        /* all chapters share one grid cell, so the block never changes height */
-        .hp-stack{ display: grid; width: 100%; justify-items: center; }
-        .hp-stack > *{ grid-area: 1 / 1; }
-
-        .hp-eyebrow{
-          display: inline-flex; align-items: center; gap: 10px;
-          padding: 8px 16px 8px 12px; border-radius: 999px;
-          border: 1px solid var(--line); background: rgba(255,255,255,.04);
-          font: 500 11.5px/1 var(--font-mono); letter-spacing: .2em; text-transform: uppercase; color: var(--text);
-          opacity: 0; transform: translateY(6px);
-          transition: opacity .4s var(--easing), transform .5s var(--easing-out);
-        }
-        .hp-eyebrow.on{ opacity: 1; transform: none; transition-delay: .25s; }
-        .hp-eyebrow-dot{ width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px rgba(124,138,255,.16); transition: background .6s, box-shadow .6s; }
-        .hp.is-approved .hp-eyebrow-dot{ background: var(--ok); box-shadow: 0 0 0 4px rgba(126,227,181,.18); }
-
-        .hp-headline{
-          margin: 0; font-family: var(--font-display); font-weight: 600;
-          font-size: clamp(34px, 4.7vw, 68px); line-height: 1.02; letter-spacing: -0.035em; color: var(--text);
-        }
-        .hp-hl{ display: flex; flex-direction: column; align-items: center; }
-        .hp-hl-line{ display: flex; flex-wrap: wrap; justify-content: center; gap: 0 .24em; }
-        .hp-word{ display: inline-block; overflow: hidden; padding: 0 .02em .1em; margin-bottom: -.06em; }
-        .hp-word-in{
-          display: inline-block; transform: translateY(105%); opacity: 0;
-          transition: transform .7s cubic-bezier(.2,.85,.25,1), opacity .45s var(--easing);
-        }
-        .hp-hl:not(.on) .hp-word-in{ transform: translateY(-40%); opacity: 0; transition-duration: .35s, .25s; }
-        .hp-hl.on .hp-word-in{ transform: none; opacity: 1; }
-        .hp-word-in.is-accent{
-          font-family: var(--font-serif); font-style: italic; font-weight: 400; letter-spacing: -0.02em;
-          background: linear-gradient(180deg, #FFFFFF 0%, #C5CAF8 50%, var(--accent-2) 100%);
-          -webkit-background-clip: text; background-clip: text; color: transparent;
-        }
-        .hp.is-approved .hp-word-in.is-accent{ background-image: linear-gradient(180deg, #FFFFFF 0%, #C8F5DA 50%, var(--ok) 100%); }
-
-        .hp-lede{
-          margin: 0; max-width: 60ch; font-size: clamp(15px, 1.1vw, 17px); line-height: 1.6; color: var(--text-2);
-          opacity: 0; transform: translateY(8px);
-          transition: opacity .45s var(--easing), transform .6s var(--easing-out);
-        }
-        .hp-lede.on{ opacity: 1; transform: none; transition-delay: .35s; }
-
-        .hp-stage{ position: relative; width: 100%; display: flex; align-items: center; justify-content: center; min-height: 0; }
-        .hp-halo{
-          position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-          width: clamp(340px, 40vw, 620px); aspect-ratio: 1; border-radius: 50%; pointer-events: none;
-          background: radial-gradient(closest-side, rgba(124,138,255,.22), rgba(124,138,255,.06) 55%, transparent 72%);
-          transition: background .9s var(--easing);
-        }
-        .hp.is-approved .hp-halo{ background: radial-gradient(closest-side, rgba(126,227,181,.2), rgba(126,227,181,.05) 55%, transparent 72%); }
-        .hp-device-wrap{
-          position: relative; width: min(50vmin, 44vh, 560px); aspect-ratio: 1;
-          animation: hpIn 1.1s cubic-bezier(.2,.85,.25,1) .15s both;
-        }
-        @keyframes hpIn{ from{ opacity: 0; transform: translateY(40px) scale(.94); } to{ opacity: 1; transform: none; } }
-        .hp-device-3d{ width: 100%; height: 100%; }
-        .hp-floor{
-          position: absolute; left: 50%; bottom: 4%; width: 60%; height: 34px; transform: translateX(-50%);
-          background: radial-gradient(closest-side, rgba(0,0,0,.55), transparent); pointer-events: none; z-index: -1;
-        }
-
-        .hp-foot{ display: flex; flex-direction: column; align-items: center; gap: 14px; }
-        .hp-cta-row{ display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
-        .hp-dots{ display: flex; gap: 10px; }
-        .hp-dot{ padding: 10px 0; }
-        .hp-dot-bar{ display: block; width: 36px; height: 3px; border-radius: 3px; background: rgba(255,255,255,.16); overflow: hidden; }
-        .hp-dot-bar i{ display: block; height: 100%; width: 100%; background: var(--accent-2); transform: scaleX(0); transform-origin: left; }
-        .hp-dot.on .hp-dot-bar i{ animation: hpBar linear forwards; }
-        .hp.is-approved .hp-dot.on .hp-dot-bar i{ background: var(--ok); }
-        @keyframes hpBar{ to{ transform: scaleX(1); } }
-
-        @media (max-width: 760px){
-          .hp-shell{ padding-top: 20px; }
-          .hp-eyebrow{ font-size: 10px; letter-spacing: .16em; }
-          .hp-device-wrap{ width: min(86vw, 46vh); }
-          .hp-cta-row .btn{ padding: 13px 18px; font-size: 14.5px; }
-        }
-        @media (prefers-reduced-motion: reduce){
-          .hp-word-in, .hp-lede, .hp-eyebrow{ transition: none; }
-          .hp-device-wrap{ animation: none; }
-        }
-      `));
+  }))), React.createElement("div", {
+    className: side(STORY[2]),
+    ref: P(2)
+  }, React.createElement("h2", {
+    className: "st-h2"
+  }, "Receiving runs on ", React.createElement("em", null, "faith"), "."), React.createElement("ul", {
+    className: "st-list"
+  }, React.createElement("li", null, "Paper at the gate."), React.createElement("li", null, "Data typed twice."), React.createElement("li", null, "No single source of truth."))), React.createElement("div", {
+    className: side(STORY[3]),
+    ref: P(3)
+  }, React.createElement("h2", {
+    className: "st-h2"
+  }, "One tap ", React.createElement("em", null, "closes the loop"), "."), React.createElement("ol", {
+    className: "st-steps"
+  }, HOW_STEPS.map((s, k) => React.createElement("li", {
+    key: k,
+    className: k === howStep ? 'on' : ''
+  }, React.createElement("span", null, k + 1), s.t)))), React.createElement("div", {
+    className: side(STORY[4]),
+    ref: P(4)
+  }, React.createElement("h2", {
+    className: "st-h2"
+  }, "Built for the gate, ", React.createElement("em", null, "not the office"), "."), React.createElement("dl", {
+    className: "st-stats"
+  }, React.createElement("div", null, React.createElement("dt", null, "< 200 ms"), React.createElement("dd", null, "from tap to screen")), React.createElement("div", null, React.createElement("dt", null, "13.56 MHz"), React.createElement("dd", null, "RFID reader")), React.createElement("div", null, React.createElement("dt", null, "1 tap"), React.createElement("dd", null, "per shipment"))))));
 }
-window.HeroPhoto = HeroPhoto;
-})();
-
-/* ---- Architecture ---- */
-(function(){
-const ARCH_NODES = [{
-  id: 'card',
-  label: 'RFID Card / Fob',
-  sub: 'CREDENTIAL',
-  icon: 'card'
-}, {
-  id: 'reader',
-  label: 'RC522 Reader',
-  sub: 'CAPTURE',
-  icon: 'wave'
-}, {
-  id: 'mcu',
-  label: 'Arduino UNO R4',
-  sub: 'BRAIN',
-  icon: 'chip',
-  key: true
-}, {
-  id: 'cloud',
-  label: 'Verigate Dashboard',
-  sub: 'SOURCE OF TRUTH',
-  icon: 'cloud'
-}, {
-  id: 'lcd',
-  label: 'LCD 16×2',
-  sub: 'DRIVER',
-  icon: 'screen'
-}];
-const ICONS = {
-  card: React.createElement("svg", {
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: "2"
-  }, React.createElement("rect", {
-    x: "3",
-    y: "6",
-    width: "18",
-    height: "12",
-    rx: "2"
-  }), React.createElement("path", {
-    d: "M3 10h18M7 14h2"
-  })),
-  wave: React.createElement("svg", {
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: "2"
-  }, React.createElement("circle", {
-    cx: "12",
-    cy: "12",
-    r: "3"
-  }), React.createElement("path", {
-    d: "M5 8a8 8 0 0 1 14 0M2 5a12 12 0 0 1 20 0"
-  })),
-  chip: React.createElement("svg", {
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: "2"
-  }, React.createElement("rect", {
-    x: "6",
-    y: "6",
-    width: "12",
-    height: "12",
-    rx: "2"
-  }), React.createElement("path", {
-    d: "M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"
-  })),
-  cloud: React.createElement("svg", {
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: "2"
-  }, React.createElement("path", {
-    d: "M7 18h10a4 4 0 0 0 .5-7.96A6 6 0 0 0 6 11a4 4 0 0 0 1 7z"
-  })),
-  screen: React.createElement("svg", {
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: "2"
-  }, React.createElement("rect", {
-    x: "3",
-    y: "5",
-    width: "18",
-    height: "14",
-    rx: "2"
-  }), React.createElement("path", {
-    d: "M7 10h10M7 14h6"
-  }))
-};
-function Architecture() {
-  return React.createElement("section", {
-    className: "section",
-    id: "architecture"
-  }, React.createElement("header", {
-    className: "section-head center reveal"
-  }, React.createElement("span", {
-    className: "kicker"
-  }, React.createElement("span", {
-    className: "dot"
-  }), "How it flows"), React.createElement("h2", {
-    className: "display-2"
-  }, "Five parts. ", React.createElement("em", {
-    className: "serif-italic"
-  }, "One source of truth"), "."), React.createElement("p", {
-    className: "lede center"
-  }, "A card touches the reader, the MCU asks the dashboard, and the LCD answers. Every shipment carries the same record from gate to ledger.")), React.createElement("div", {
-    className: "arch reveal"
-  }, React.createElement("div", {
-    className: "arch-track"
-  }, React.createElement("svg", {
-    className: "arch-line",
-    preserveAspectRatio: "none",
-    viewBox: "0 0 1160 120"
-  }, React.createElement("defs", null, React.createElement("linearGradient", {
-    id: "archG",
-    x1: "0",
-    x2: "1"
-  }, React.createElement("stop", {
-    offset: "0%",
-    stopColor: "rgba(167,139,250,0)"
-  }), React.createElement("stop", {
-    offset: "50%",
-    stopColor: "rgba(167,139,250,.8)"
-  }), React.createElement("stop", {
-    offset: "100%",
-    stopColor: "rgba(167,139,250,0)"
-  }))), React.createElement("path", {
-    d: "M30 60 H1130",
-    stroke: "url(#archG)",
-    strokeWidth: "1.5",
-    fill: "none"
-  }), React.createElement("path", {
-    className: "flow",
-    d: "M30 60 H1130",
-    stroke: "rgba(124,138,255,.9)",
-    strokeWidth: "1.5",
-    fill: "none",
-    strokeDasharray: "4 12"
-  })), React.createElement("ul", {
-    className: "arch-nodes"
-  }, ARCH_NODES.map((n, i) => React.createElement("li", {
-    key: n.id,
-    className: 'arch-node reveal delay-' + (i + 1) + (n.key ? ' arch-node-key' : '')
-  }, React.createElement("span", {
-    className: "arch-ico"
-  }, ICONS[n.icon]), React.createElement("b", null, n.label), React.createElement("small", null, n.sub))))), React.createElement("ul", {
-    className: "arch-stats"
-  }, React.createElement("li", null, React.createElement("b", null, "< 200ms"), React.createElement("span", null, "End-to-end")), React.createElement("li", null, React.createElement("b", null, "13.56 MHz"), React.createElement("span", null, "RFID")), React.createElement("li", null, React.createElement("b", null, "5 V \xB7 SPI"), React.createElement("span", null, "Bus")), React.createElement("li", null, React.createElement("b", null, "0"), React.createElement("span", null, "Mismatches")))), React.createElement("style", null, `
-
-        .arch{
-          position:relative;
-          padding: 36px clamp(20px, 3vw, 40px) 30px;
-          border-radius: var(--r-xl);
-          border: 1px solid var(--line);
-          background:
-            radial-gradient(900px 280px at 50% 0%, rgba(124,138,255,.14), transparent 65%),
-            linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
-            var(--surface);
-          box-shadow: var(--shadow-md);
-          isolation:isolate;
-        }
-        .arch-track{ position:relative; padding: 16px 0 8px; }
-        .arch-line{ position:absolute; left:0; right:0; top:50%; width:100%; height:120px; transform: translateY(-50%); pointer-events:none; }
-        .arch-line .flow{ animation: archFlow 6s linear infinite; }
-        @keyframes archFlow{ 0%{ stroke-dashoffset: 0; } 100%{ stroke-dashoffset: -1160; } }
-        .arch-nodes{ list-style:none; padding:0; margin:0; display:grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 14px; position:relative; z-index:1; }
-        .arch-node{
-          position: relative;
-          display:flex; flex-direction:column; align-items:center; gap: 8px;
-          text-align:center;
-          padding: 22px 14px 20px;
-          border-radius: var(--r-md);
-          border: 1px solid var(--line);
-          background:
-            linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.01)),
-            var(--surface);
-          box-shadow: var(--shadow-sm);
-          transition:
-            transform .45s var(--easing-out),
-            border-color .35s var(--easing),
-            box-shadow .35s var(--easing);
-          will-change: transform;
-        }
-        .arch-node:hover{
-          transform: translateY(-6px);
-          border-color: var(--line-3);
-          box-shadow: var(--shadow-md);
-        }
-        .arch-node:hover .arch-ico{
-          transform: rotate(-4deg) scale(1.08);
-        }
-        .arch-ico{
-          width:48px; height:48px;
-          border-radius: 14px;
-          display:inline-flex; align-items:center; justify-content:center;
-          background: linear-gradient(160deg, rgba(124,138,255,.10), rgba(124,138,255,.02));
-          border:1px solid rgba(124,138,255,.22);
-          color: var(--accent);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
-          transition: transform .35s var(--easing-spring);
-        }
-        .arch-ico svg{ width: 22px; height: 22px; }
-        .arch-node b{ font-family: var(--font-display); font-size: 14.5px; letter-spacing:-0.005em; color: var(--text); }
-        .arch-node small{ font: 600 10.5px/1 var(--font-mono); letter-spacing:.16em; text-transform:uppercase; color: var(--muted); }
-        .arch-node-key{
-          border-color: rgba(124,138,255,.45);
-          background: linear-gradient(180deg, var(--accent), var(--accent-3));
-          color: #FFFFFF;
-          box-shadow: var(--glow-accent);
-        }
-        .arch-node-key b, .arch-node-key small{ color: #FFFFFF; }
-        .arch-node-key small{ opacity: .85; }
-        .arch-node-key .arch-ico{
-          color:#fff;
-          background: rgba(255,255,255,.18);
-          border-color: rgba(255,255,255,.35);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,.3);
-        }
-
-        .arch-stats{
-          list-style:none;
-          padding: 26px 0 0;
-          margin: 26px 0 0;
-          border-top: 1px dashed var(--line);
-          display:grid;
-          grid-template-columns: repeat(4, minmax(0,1fr));
-          gap: 14px;
-        }
-        .arch-stats li{ display:flex; flex-direction:column; align-items:center; gap: 4px; text-align:center; }
-        .arch-stats b{
-          font-family: var(--font-display);
-          font-size: clamp(26px, 2.6vw, 36px);
-          letter-spacing:-0.022em;
-          color: var(--text);
-        }
-        .arch-stats span{ font: 600 11px/1 var(--font-mono); letter-spacing:.16em; text-transform:uppercase; color: var(--muted); }
-
-        @media (max-width: 900px){
-          .arch-nodes{ grid-template-columns: repeat(2, minmax(0,1fr)); }
-          .arch-line{ display:none; }
-          .arch-stats{ grid-template-columns: repeat(2, minmax(0,1fr)); }
-        }
-      `));
-}
-window.Architecture = Architecture;
-})();
-
-/* ---- Capabilities ---- */
-(function(){
-const CAPS = [{
-  accent: 'a',
-  title: 'Tap once. Done.',
-  tag: 'LATENCY',
-  desc: 'The reader picks up the card the instant it touches the panel. The dashboard answers in under 200 ms.',
-  icon: React.createElement("svg", {
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: "2"
-  }, React.createElement("circle", {
-    cx: "12",
-    cy: "12",
-    r: "3"
-  }), React.createElement("path", {
-    d: "M5 8a8 8 0 0 1 14 0M2 5a12 12 0 0 1 20 0"
-  }))
-}, {
-  accent: 'b',
-  title: 'Verified at the source',
-  tag: 'TRUST',
-  desc: 'Each card is bound to one driver. The shipment that appears on the LCD is the shipment in the ledger.',
-  icon: React.createElement("svg", {
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: "2"
-  }, React.createElement("path", {
-    d: "M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6z"
-  }), React.createElement("path", {
-    d: "m9 12 2 2 4-4"
-  }))
-}, {
-  accent: 'c',
-  title: 'No paperwork. No retyping.',
-  tag: 'WORKFLOW',
-  desc: 'Approvals move from a clipboard to a button. Every event lands in the same dashboard, in real time.',
-  icon: React.createElement("svg", {
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: "2"
-  }, React.createElement("rect", {
-    x: "4",
-    y: "3",
-    width: "16",
-    height: "18",
-    rx: "2"
-  }), React.createElement("path", {
-    d: "M8 8h8M8 12h6M8 16h8"
-  }))
-}];
-function Capabilities() {
-  return React.createElement("section", {
-    className: "section",
-    id: "capabilities"
-  }, React.createElement("header", {
-    className: "section-head center reveal"
-  }, React.createElement("span", {
-    className: "kicker"
-  }, "Capabilities"), React.createElement("h2", {
-    className: "display-2"
-  }, "Built for the gate, ", React.createElement("em", {
-    className: "serif-italic"
-  }, "not the office"), ".")), React.createElement("div", {
-    className: "cap-grid"
-  }, CAPS.map((c, i) => React.createElement("article", {
-    key: i,
-    className: 'cap reveal delay-' + (i + 1),
-    "data-accent": c.accent
-  }, React.createElement("div", {
-    className: "cap-shine",
-    "aria-hidden": "true"
-  }), React.createElement("div", {
-    className: "cap-ico"
-  }, c.icon), React.createElement("h3", null, c.title), React.createElement("p", null, c.desc), React.createElement("span", {
-    className: "cap-tag"
-  }, c.tag)))), React.createElement("style", null, `
-        .cap-grid{ display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 18px; }
-        .cap{
-          position:relative; overflow:hidden;
-          padding: 28px 26px 24px;
-          border-radius: var(--r-lg);
-          border: 1px solid var(--line);
-          background:
-            linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
-            var(--surface);
-          box-shadow: var(--shadow-sm);
-          transition:
-            transform .55s var(--easing-out),
-            border-color .35s var(--easing),
-            box-shadow .45s var(--easing);
-          will-change: transform;
-        }
-        .cap::before{
-          content:""; position:absolute; inset:0;
-          background: radial-gradient(420px 200px at 0% 0%, rgba(124,138,255,.06), transparent 70%);
-          opacity:0; transition: opacity .45s var(--easing);
-          pointer-events:none;
-        }
-        .cap::after{
-          content:""; position:absolute; left:0; top:0; bottom:0;
-          width: 3px;
-          background: linear-gradient(180deg, transparent, var(--accent), transparent);
-          transform: scaleY(0); transform-origin: center;
-          transition: transform .55s var(--easing-out);
-        }
-        .cap:hover{
-          transform: translateY(-8px);
-          border-color: var(--line-2);
-          box-shadow: var(--shadow-lg);
-        }
-        .cap:hover::before{ opacity:1; }
-        .cap:hover::after{ transform: scaleY(1); }
-        .cap-shine{
-          position: absolute; inset: 0;
-          background: linear-gradient(115deg,
-            transparent 30%,
-            rgba(124,138,255,.07) 48%,
-            rgba(124,138,255,.14) 50%,
-            rgba(124,138,255,.07) 52%,
-            transparent 70%);
-          opacity: 0;
-          transform: translateX(-30%);
-          transition: opacity .5s var(--easing), transform 1.1s var(--easing-out);
-          pointer-events: none;
-          z-index: 1;
-        }
-        .cap:hover .cap-shine{ opacity: 1; transform: translateX(30%); }
-        .cap:hover .cap-ico{ transform: rotate(-6deg) scale(1.05); }
-        .cap-ico{
-          position: relative; z-index: 2;
-          width:48px; height:48px; border-radius: 14px;
-          display:inline-flex; align-items:center; justify-content:center;
-          background: linear-gradient(160deg, rgba(124,138,255,.10), rgba(124,138,255,.02));
-          border:1px solid rgba(124,138,255,.22);
-          color: var(--accent);
-          margin-bottom: 20px;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
-          transition: transform .45s var(--easing-spring);
-        }
-        .cap-ico svg{ width: 22px; height: 22px; }
-        .cap[data-accent="b"] .cap-ico{
-          background: linear-gradient(160deg, rgba(126,227,181,.10), rgba(126,227,181,.02));
-          border-color: rgba(126,227,181,.22);
-          color: var(--ok);
-        }
-        .cap[data-accent="c"] .cap-ico{
-          background: linear-gradient(160deg, rgba(167,139,250,.12), rgba(167,139,250,.02));
-          border-color: rgba(167,139,250,.26);
-          color: #C57400;
-        }
-        .cap h3{ font-family: var(--font-display); font-size: 20px; margin: 0 0 8px; letter-spacing:-0.012em; color: var(--text); position: relative; z-index: 2; }
-        .cap p{ color: var(--muted); margin: 0 0 18px; font-size: 14.5px; line-height: 1.6; position: relative; z-index: 2; }
-        .cap-tag{
-          position: relative; z-index: 2;
-          display:inline-block;
-          font: 500 10.5px/1 var(--font-mono);
-          letter-spacing: .18em; text-transform: uppercase;
-          color: var(--accent);
-          padding: 6px 10px;
-          border-radius: 999px;
-          border: 1px solid var(--line-3);
-          background: rgba(124,138,255,.06);
-        }
-        .cap[data-accent="b"] .cap-tag{ color: var(--ok); border-color: var(--line-ok); background: rgba(126,227,181,.06); }
-        .cap[data-accent="c"] .cap-tag{ color: #C57400; border-color: rgba(167,139,250,.30); background: rgba(167,139,250,.08); }
-        @media (max-width: 980px){ .cap-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
-        @media (max-width: 620px){ .cap-grid{ grid-template-columns: 1fr; } }
-      `));
-}
-window.Capabilities = Capabilities;
-})();
-
-/* ---- Problems ---- */
-(function(){
-const PROBS = [{
-  num: '01',
-  title: 'Paper at the gate',
-  desc: 'Clipboards lose. Receipts vanish. Every untracked tap leaves a hole in the ledger that nobody finds until the audit.'
-}, {
-  num: '02',
-  title: 'Retyped data',
-  desc: 'Drivers say one thing, the warehouse types another. Mismatches surface days later, when the trail is already cold.'
-}, {
-  num: '03',
-  title: 'No source of truth',
-  desc: 'The dashboard, the inbox, and the gate run separate stories. Reconciliation is a person — and that person is always behind.'
-}];
-function Problems() {
-  const gridRef = React.useRef(null);
-  const [stackIn, setStackIn] = React.useState(false);
-  React.useEffect(() => {
-    const el = gridRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) {
-        setStackIn(true);
-        io.disconnect();
-      }
-    }, {
-      threshold: 0.18
-    });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-  const onCardMove = e => {
-    const card = e.currentTarget;
-    const r = card.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width - 0.5;
-    const y = (e.clientY - r.top) / r.height - 0.5;
-    card.style.setProperty('--cx', x.toFixed(3));
-    card.style.setProperty('--cy', y.toFixed(3));
-  };
-  const onCardLeave = e => {
-    const card = e.currentTarget;
-    card.style.setProperty('--cx', '0');
-    card.style.setProperty('--cy', '0');
-  };
-  return React.createElement("section", {
-    className: "section",
-    id: "problems"
-  }, React.createElement("header", {
-    className: "section-head center reveal"
-  }, React.createElement("span", {
-    className: "kicker"
-  }, "The problem"), React.createElement("h2", {
-    className: "display-2"
-  }, "Receiving runs on ", React.createElement("em", {
-    className: "serif-italic"
-  }, "faith"), ".")), React.createElement("ul", {
-    ref: gridRef,
-    className: 'prob-grid' + (stackIn ? ' is-spread' : '')
-  }, PROBS.map((p, i) => React.createElement("li", {
-    key: p.num,
-    className: "prob",
-    style: {
-      '--idx': i,
-      '--n': PROBS.length
-    },
-    onMouseMove: onCardMove,
-    onMouseLeave: onCardLeave
-  }, React.createElement("span", {
-    className: "prob-glow",
-    "aria-hidden": "true"
-  }), React.createElement("span", {
-    className: "prob-shine",
-    "aria-hidden": "true"
-  }), React.createElement("span", {
-    className: "prob-num"
-  }, p.num), React.createElement("h3", null, p.title), React.createElement("p", null, p.desc)))), React.createElement("style", null, `
-        .prob-grid{
-          list-style:none; padding:0; margin: 0;
-          display: grid; grid-template-columns: repeat(3, minmax(0,1fr));
-          gap: 18px;
-          perspective: 1200px;
-        }
-        .prob{
-          --cx: 0;
-          --cy: 0;
-          --stack-x: calc(((var(--idx, 0) - (var(--n, 3) - 1) / 2) * 50%) * -1);
-          --stack-rot: calc((var(--idx, 0) - (var(--n, 3) - 1) / 2) * -6deg);
-          position:relative; overflow:hidden;
-          padding: 30px 28px;
-          border-radius: var(--r-lg);
-          border: 1px solid var(--line);
-          background:
-            linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
-            var(--surface);
-          box-shadow: var(--shadow-sm);
-          transform-style: preserve-3d;
-          transform:
-            translate3d(var(--stack-x), 32px, 0)
-            rotate(var(--stack-rot))
-            scale(.92);
-          opacity: 0;
-          transition:
-            transform 1.1s cubic-bezier(.2,.85,.25,1),
-            opacity .9s var(--easing-out),
-            border-color .35s var(--easing),
-            box-shadow .45s var(--easing);
-          transition-delay: calc(var(--idx, 0) * 120ms + 50ms);
-        }
-        .prob-grid.is-spread .prob{
-          opacity: 1;
-          transform:
-            translate3d(0, 0, 0)
-            rotate(0deg)
-            scale(1);
-        }
-        .prob-grid.is-spread .prob:hover{
-          transform:
-            translate3d(0, -8px, 0)
-            rotateX(calc(var(--cy) * -6deg))
-            rotateY(calc(var(--cx) * 8deg))
-            scale(1.015);
-        }
-        .prob::before{
-          content:""; position:absolute; inset:auto 0 0 0;
-          height: 2px;
-          background: linear-gradient(90deg, transparent, var(--accent), transparent);
-          transform: scaleX(0); transform-origin: left;
-          transition: transform .65s var(--easing-out);
-        }
-        .prob:hover{
-          border-color: var(--line-2);
-          box-shadow: var(--shadow-lg);
-        }
-        .prob:hover::before{ transform: scaleX(1); }
-        .prob-glow{
-          position: absolute;
-          right: -40px; top: -40px;
-          width: 240px; height: 240px;
-          background: radial-gradient(closest-side, rgba(124,138,255,.25), transparent 70%);
-          opacity: 0;
-          filter: blur(10px);
-          transition: opacity .5s var(--easing);
-          pointer-events: none;
-        }
-        .prob:hover .prob-glow{ opacity: 1; }
-        /* Diagonal shine that tracks cursor pos */
-        .prob-shine{
-          position: absolute; inset: 0;
-          background: linear-gradient(
-            115deg,
-            transparent 30%,
-            rgba(167,139,250,.06) 48%,
-            rgba(167,139,250,.14) 50%,
-            rgba(167,139,250,.06) 52%,
-            transparent 70%);
-          opacity: 0;
-          transform: translateX(-30%);
-          transition: opacity .5s var(--easing), transform 1.1s var(--easing-out);
-          pointer-events: none;
-        }
-        .prob:hover .prob-shine{ opacity: 1; transform: translateX(30%); }
-        .prob:hover .prob-num{
-          background: rgba(124,138,255,.10);
-          border-color: rgba(124,138,255,.36);
-          color: var(--accent-3);
-        }
-        .prob-num{
-          position: relative; z-index: 1;
-          font: 600 12px/1 var(--font-mono);
-          letter-spacing: .22em;
-          color: var(--accent);
-          margin-bottom: 18px;
-          display:inline-block;
-          padding: 6px 10px;
-          border-radius: 999px;
-          border: 1px solid var(--line-3);
-          background: rgba(124,138,255,.05);
-          transition: background .35s var(--easing), border-color .35s var(--easing), color .35s var(--easing);
-        }
-        .prob h3, .prob p{ position: relative; z-index: 1; }
-        .prob h3{ font-family: var(--font-display); font-size: 22px; margin: 0 0 10px; letter-spacing:-0.012em; color: var(--text); }
-        .prob p{ color: var(--muted); margin: 0; line-height: 1.6; }
-        @media (max-width: 980px){ .prob-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
-        @media (max-width: 620px){ .prob-grid{ grid-template-columns: 1fr; } }
-      `));
-}
-window.Problems = Problems;
-})();
-
-/* ---- Solution ---- */
-(function(){
-const POINTS = [{
-  n: '01',
-  t: 'Bind a card to a driver',
-  s: 'One MIFARE card per driver, one tap per arrival.'
-}, {
-  n: '02',
-  t: 'Match shipment at the gate',
-  s: 'The dashboard answers before the driver lifts their hand.'
-}, {
-  n: '03',
-  t: 'Approve in seconds',
-  s: 'A worker confirms on the LCD. The ledger updates everywhere.'
-}];
-function Solution() {
-  return React.createElement("section", {
-    className: "section",
-    "data-solution": true
-  }, React.createElement("div", {
-    className: "solution-grid"
-  }, React.createElement("div", {
-    className: "solution-text reveal"
-  }, React.createElement("span", {
-    className: "kicker"
-  }, "The solution"), React.createElement("h2", {
-    className: "display-2"
-  }, "A device that ", React.createElement("em", {
-    className: "serif-italic"
-  }, "closes the loop"), "."), React.createElement("p", {
-    className: "lede"
-  }, "Verigate sits on the receiving counter. The driver taps a card, the shipment appears, the worker approves."), React.createElement("ul", {
-    className: "solution-points"
-  }, POINTS.map(p => React.createElement("li", {
-    key: p.n
-  }, React.createElement("span", {
-    className: "sp-num"
-  }, p.n), React.createElement("div", null, React.createElement("b", null, p.t), React.createElement("small", null, p.s)))))), React.createElement("figure", {
-    className: "solution-figure reveal",
-    id: "solutionFigure"
-  }, React.createElement("div", {
-    className: "sf-frame"
-  }, React.createElement("img", {
-    src: "./wallpaper.jpg",
-    alt: "Verigate device on a receiving counter"
-  })))), React.createElement("style", null, `
-        .solution-grid{ display:grid; grid-template-columns: 1fr 1.05fr; gap: clamp(28px, 4vw, 64px); align-items: center; }
-        .solution-text{ display:flex; flex-direction:column; align-items:flex-start; gap: 14px; }
-        .solution-text .lede{ margin-top: 8px; max-width: 50ch; }
-        .solution-points{ list-style:none; padding:0; margin: 28px 0 0; display:grid; gap: 12px; width: 100%; }
-        .solution-points li{
-          display:grid; grid-template-columns: 56px 1fr; gap: 16px;
-          align-items:center;
-          padding: 18px 20px;
-          border-radius: var(--r-md);
-          border:1px solid var(--line);
-          background:
-            linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
-            var(--surface);
-          box-shadow: var(--shadow-sm);
-          transition: transform .25s var(--easing-out), border-color .2s ease, box-shadow .25s ease;
-        }
-        .solution-points li:hover{
-          transform: translateX(6px);
-          border-color: var(--line-3);
-          box-shadow: var(--shadow-md);
-        }
-        .sp-num{
-          display:inline-flex; align-items:center; justify-content:center;
-          width: 40px; height: 40px;
-          border-radius: 12px;
-          background: linear-gradient(160deg, rgba(124,138,255,.10), rgba(124,138,255,.02));
-          border:1px solid rgba(124,138,255,.22);
-          font: 600 13px/1 var(--font-mono);
-          color: var(--accent);
-        }
-        .solution-points b{ display:block; font-weight:600; margin-bottom: 2px; font-family: var(--font-display); font-size: 15.5px; color: var(--text); }
-        .solution-points small{ color: var(--muted); font-size: 13.5px; }
-        .solution-figure{ margin: 0; }
-        .sf-frame{
-          position:relative;
-          border-radius: var(--r-xl);
-          overflow:hidden;
-          border:1px solid var(--line);
-          box-shadow: var(--shadow-lg);
-          background: var(--surface);
-        }
-        .sf-frame img{ width: 100%; height: auto; display: block; }
-        .sf-tag{
-          position:absolute; left: 32px; bottom: 32px;
-          display:inline-flex; align-items:center; gap:8px;
-          padding: 8px 12px; border-radius: 999px;
-          border:1px solid var(--line-3);
-          background: rgba(255,255,255,.9);
-          font: 600 11px/1 var(--font-mono);
-          letter-spacing:.16em; text-transform:uppercase;
-          color: var(--text);
-        }
-        .sf-tag i{
-          width: 8px; height: 8px; border-radius:50%;
-          background: var(--accent);
-          box-shadow: 0 0 14px rgba(124,138,255,.6);
-          animation: pulse2 2.2s ease-in-out infinite;
-        }
-        @keyframes pulse2{ 50%{ box-shadow: 0 0 0 8px rgba(124,138,255,0); } }
-        @media (max-width: 900px){ .solution-grid{ grid-template-columns: 1fr; gap: 36px; } .solution-figure{ position: static; top: auto; } }
-      `));
-}
-window.Solution = Solution;
+window.Story = Story;
 })();
 
 /* ---- ReceivingScene ---- */
@@ -3042,6 +2666,25 @@ function ReceivingScene({
         threshold: 0
       });
       io.observe(mount);
+      const warmUp = () => {
+        if (!mount.isConnected) return;
+        const hidden = [];
+        scene.traverse(o => {
+          if (!o.visible) {
+            hidden.push(o);
+            o.visible = true;
+          }
+        });
+        try {
+          renderer.compile(scene, camera);
+        } catch (e) {}
+        hidden.forEach(o => {
+          o.visible = false;
+        });
+      };
+      if (window.requestIdleCallback) requestIdleCallback(warmUp, {
+        timeout: 4000
+      });else setTimeout(warmUp, 1500);
       let last = -1,
         lastPaint = 0;
       const loop = () => {
@@ -3363,469 +3006,34 @@ function Process() {
 window.Process = Process;
 })();
 
-/* ---- Explorer ---- */
-(function(){
-const COMPONENTS = {
-  panel: {
-    name: 'SCAN Panel',
-    desc: 'The face of the device. Where the driver taps.',
-    role: 'Marks the scan zone and houses the LCD window so the driver always knows where to place the card.',
-    specs: [['Finish', 'Matte black ABS'], ['Marking', 'Laser-etched'], ['Window', 'Anti-glare LCD']]
-  },
-  lcd: {
-    name: 'LCD 16×2',
-    desc: 'A small two-line display.',
-    role: 'Shows shipment info and system status in real time — driver name, scan result, approve prompt.',
-    specs: [['Type', 'HD44780'], ['Format', '16 × 2 chars'], ['Backlight', 'Blue LED']]
-  },
-  rfid: {
-    name: 'RC522 Reader',
-    desc: 'The 13.56 MHz RFID module.',
-    role: 'Reads the card or fob ID the instant it touches the panel.',
-    specs: [['Standard', 'MIFARE 13.56 MHz'], ['Bus', 'SPI'], ['Range', '3–5 cm']]
-  },
-  mcu: {
-    name: 'Arduino UNO R4',
-    desc: 'The brain of the device.',
-    role: 'Reads the RFID, talks to the dashboard, and drives the LCD on every tap.',
-    specs: [['MCU', 'Renesas RA4M1'], ['Clock', '48 MHz'], ['I/O', 'USB · SPI · I²C · UART']]
-  },
-  wires: {
-    name: 'Wiring Harness',
-    desc: 'Power and signal lines.',
-    role: 'Keeps the boards connected with clean, reliable signal between the MCU, reader, and display.',
-    specs: [['Gauge', '22 AWG'], ['Bus', 'SPI · 5 V · GND']]
-  },
-  battery: {
-    name: '9 V Battery',
-    desc: 'Backup power.',
-    role: 'Keeps the device alive through short power dips so the gate never stalls mid-shipment.',
-    specs: [['Cell', '9 V alkaline'], ['Use', 'Brownout backup']]
-  },
-  enclosure: {
-    name: 'Enclosure',
-    desc: 'The outer case.',
-    role: 'Protects the electronics and presents a clean, branded surface to the driver.',
-    specs: [['Material', 'ABS composite'], ['Finish', 'Matte black'], ['Mount', 'Counter / wall']]
-  },
-  card: {
-    name: 'RFID Card',
-    desc: "A driver’s credential, in card form.",
-    role: 'Each card is bound to one driver — tap it, and the matching shipment shows up.',
-    specs: [['Type', 'MIFARE Classic 1K'], ['Frequency', '13.56 MHz']]
-  },
-  fob: {
-    name: 'RFID Keyfob',
-    desc: 'Same credential, in keyring form.',
-    role: "A drop-in alternative for drivers who’d rather carry a fob than a card.",
-    specs: [['Type', 'MIFARE Classic'], ['Form', 'Keyring fob']]
-  }
-};
-const ORDER = ['panel', 'lcd', 'rfid', 'mcu', 'wires', 'battery', 'enclosure', 'card', 'fob'];
-const HOTSPOTS = [{
-  id: 'panel',
-  left: '10%',
-  top: '62%'
-}, {
-  id: 'lcd',
-  left: '22%',
-  top: '47%'
-}, {
-  id: 'rfid',
-  left: '33%',
-  top: '47%'
-}, {
-  id: 'mcu',
-  left: '48%',
-  top: '43%'
-}, {
-  id: 'wires',
-  left: '61%',
-  top: '33%'
-}, {
-  id: 'battery',
-  left: '70%',
-  top: '42%'
-}, {
-  id: 'enclosure',
-  left: '87%',
-  top: '30%'
-}, {
-  id: 'card',
-  left: '47%',
-  top: '74%'
-}, {
-  id: 'fob',
-  left: '60%',
-  top: '79%'
-}];
-function Explorer() {
-  const [active, setActive] = React.useState(null);
-  const stageRef = React.useRef(null);
-  const step = delta => {
-    if (!active) {
-      setActive(ORDER[0]);
-      return;
-    }
-    const i = ORDER.indexOf(active);
-    setActive(ORDER[(i + delta + ORDER.length) % ORDER.length]);
-  };
-  const c = active ? COMPONENTS[active] : null;
-  const idx = active ? ORDER.indexOf(active) + 1 : 0;
-  const activeHot = HOTSPOTS.find(h => h.id === active);
-  return React.createElement("section", {
-    className: "section",
-    id: "components"
-  }, React.createElement("header", {
-    className: "section-head center reveal"
-  }, React.createElement("span", {
-    className: "kicker"
-  }, "Inside the device"), React.createElement("h2", {
-    className: "display-2"
-  }, "Nine parts. ", React.createElement("em", {
-    className: "serif-italic"
-  }, "No mystery"), "."), React.createElement("p", {
-    className: "lede"
-  }, "Every part, what it does, and its spec.")), React.createElement("div", {
-    className: "explorer reveal"
-  }, React.createElement("div", {
-    ref: stageRef,
-    className: 'explorer-stage' + (active ? ' has-active' : '')
-  }, React.createElement("img", {
-    className: "exploded",
-    src: "./exploded.png",
-    alt: "Exploded view of the Verigate device"
-  }), activeHot && React.createElement("span", {
-    className: "spotlight",
-    style: {
-      left: activeHot.left,
-      top: activeHot.top
-    }
-  }), HOTSPOTS.map(h => React.createElement("button", {
-    key: h.id,
-    className: 'hot' + (active === h.id ? ' active' : ''),
-    "data-id": h.id,
-    style: {
-      left: h.left,
-      top: h.top
-    },
-    onClick: () => setActive(h.id),
-    "aria-label": COMPONENTS[h.id].name
-  }, React.createElement("span", {
-    className: "hot-pin"
-  }), React.createElement("span", {
-    className: "hot-label"
-  }, COMPONENTS[h.id].name)))), React.createElement("aside", {
-    className: "explorer-panel"
-  }, !active && React.createElement("div", {
-    className: "panel-default"
-  }, React.createElement("span", {
-    className: "panel-eyebrow"
-  }, "Pick a component"), React.createElement("h3", null, "The whole device, demystified."), React.createElement("p", {
-    className: "panel-sub"
-  }, "Tap a pin on the diagram or pick a part below."), React.createElement("ul", {
-    className: "quick-rail"
-  }, ORDER.map(id => React.createElement("li", {
-    key: id
-  }, React.createElement("button", {
-    className: "qr",
-    onClick: () => setActive(id)
-  }, COMPONENTS[id].name))))), active && c && React.createElement("div", {
-    className: "panel-detail"
-  }, React.createElement("span", {
-    className: "panel-eyebrow"
-  }, String(idx).padStart(2, '0'), " / ", String(ORDER.length).padStart(2, '0'), " \xB7 Component"), React.createElement("h3", null, c.name), React.createElement("p", {
-    className: "panel-sub"
-  }, c.desc), React.createElement("div", {
-    className: "panel-block"
-  }, React.createElement("span", {
-    className: "block-label"
-  }, "Role"), React.createElement("p", null, c.role)), React.createElement("ul", {
-    className: "spec-list"
-  }, c.specs.map(([k, v]) => React.createElement("li", {
-    key: k
-  }, React.createElement("b", null, k), React.createElement("span", null, v)))), React.createElement("div", {
-    className: "panel-controls"
-  }, React.createElement("button", {
-    className: "mini",
-    onClick: () => step(-1)
-  }, "\u2190 Prev"), React.createElement("button", {
-    className: "mini",
-    onClick: () => step(+1)
-  }, "Next \u2192"), React.createElement("button", {
-    className: "mini close",
-    onClick: () => setActive(null)
-  }, "Close"))))), React.createElement("style", null, `
-
-        .explorer{ display:grid; grid-template-columns: 1.55fr 1fr; gap: 20px; align-items: stretch; }
-        .explorer-stage{
-          position:relative;
-          border-radius: var(--r-xl);
-          border:1px solid var(--line);
-          background:
-            radial-gradient(640px 320px at 50% 58%, rgba(124,138,255,.18), transparent 65%),
-            linear-gradient(180deg, #0C0F1F, #060814);
-          overflow:hidden;
-          aspect-ratio: 666 / 375;
-          min-height: 360px;
-          isolation: isolate;
-          box-shadow: var(--shadow-md);
-        }
-        .exploded{ position:absolute; inset:0; width:100%; height:100%; object-fit: contain; transition: opacity .35s ease; }
-        .explorer-stage.has-active .exploded{ opacity:.35; }
-        .hot{ position:absolute; width:44px; height:44px; border-radius:50%; transform: translate(-50%,-50%); padding:0; outline:none; z-index:4; display:flex; align-items:center; justify-content:center; transition: transform .25s var(--easing-out), filter .25s ease; }
-        .hot-pin{
-          position: relative;
-          width: 14px; height: 14px;
-          border-radius: 50%;
-          background: linear-gradient(180deg, #fff 0%, var(--accent-2) 100%);
-          box-shadow:
-            0 0 0 4px rgba(124,138,255,.18),
-            0 0 14px rgba(167,139,250,.7),
-            0 2px 6px rgba(0,0,0,.4);
-          transition: transform .25s var(--easing-out), box-shadow .25s ease;
-        }
-        .hot-pin::before{ content:""; position:absolute; inset:-6px; border-radius:50%; border:1px solid rgba(124,138,255,.55); opacity:0; transition: opacity .25s ease; }
-        .hot.active .hot-pin{
-          transform: scale(1.25);
-          background: linear-gradient(180deg, #fff, var(--accent));
-          box-shadow:
-            0 0 0 6px rgba(124,138,255,.22),
-            0 0 22px rgba(167,139,250,.95),
-            0 2px 6px rgba(0,0,0,.5);
-        }
-        .hot.active .hot-pin::before{ opacity:1; animation: hotPulse 2s ease-out infinite; }
-        @keyframes hotPulse{ 0%{ transform: scale(.7); opacity:.9; } 100%{ transform: scale(2.4); opacity:0; } }
-        .hot:hover .hot-pin{ transform: scale(1.18); }
-        .explorer-stage.has-active .hot:not(.active){ opacity:.45; }
-        .hot-label{
-          position:absolute; bottom: calc(100% + 2px); left: 50%;
-          transform: translate(-50%, 6px); white-space: nowrap;
-          font: 600 11px/1 var(--font-mono);
-          letter-spacing: .12em; text-transform: uppercase;
-          color: var(--text);
-          padding: 6px 9px;
-          border-radius: 999px;
-          border: 1px solid var(--line-2);
-          background: rgba(20,23,43,.92);
-          box-shadow: var(--shadow-md);
-          opacity:0; pointer-events: none;
-          transition: opacity .2s ease, transform .25s var(--easing-out);
-        }
-        .hot:hover .hot-label, .hot.active .hot-label{ opacity:1; transform: translate(-50%, 0); }
-        .spotlight{
-          position:absolute; pointer-events:none; z-index:3;
-          width: 200px; height: 200px; border-radius: 50%;
-          background: radial-gradient(closest-side, rgba(124,138,255,.22), transparent 72%);
-          border:1px dashed rgba(167,139,250,.5);
-          transform: translate(-50%,-50%);
-        }
-
-        .explorer-panel{
-          position: relative;
-          border-radius: var(--r-xl);
-          border:1px solid var(--line);
-          background:
-            linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
-            var(--surface);
-          padding: 30px;
-          display:flex; flex-direction:column; gap: 12px;
-          min-height: 480px;
-          box-shadow: var(--shadow-md);
-        }
-        .panel-eyebrow{
-          font: 600 11px/1 var(--font-mono);
-          letter-spacing:.22em; text-transform:uppercase;
-          color: var(--accent);
-          display:inline-block;
-          padding: 6px 10px;
-          border-radius: 999px;
-          border: 1px solid var(--line-3);
-          background: rgba(124,138,255,.06);
-          width: max-content;
-        }
-        .explorer-panel h3{ margin: 12px 0 4px; font-family: var(--font-display); font-size: clamp(22px, 2vw, 28px); line-height: 1.15; letter-spacing: -0.018em; color: var(--text); }
-        .panel-sub{ color: var(--text-2); margin: 6px 0 14px; line-height: 1.6; }
-        .panel-block{
-          border:1px solid var(--line);
-          border-radius: 12px;
-          padding: 12px 14px;
-          background: var(--surface-2);
-          margin-bottom: 14px;
-        }
-        .block-label{ font: 600 10.5px/1 var(--font-mono); letter-spacing:.18em; text-transform:uppercase; color: var(--muted); display:block; margin-bottom: 6px; }
-        .panel-block p{ margin:0; color: var(--text-2); font-size: 14.5px; line-height: 1.55; }
-        .spec-list{ list-style:none; margin:0 0 12px; padding:0; display:grid; gap:8px; }
-        .spec-list li{
-          display:flex; justify-content:space-between; gap:14px;
-          padding: 10px 12px;
-          border-radius: 10px;
-          background: var(--surface-2);
-          border:1px solid var(--line);
-          font-size: 13.5px;
-          color: var(--text);
-        }
-        .spec-list li b{ font: 600 10.5px/1 var(--font-mono); letter-spacing:.18em; text-transform:uppercase; color: var(--muted); font-weight:600; }
-        .quick-rail{ list-style:none; padding:0; margin: 18px 0 0; display:flex; flex-wrap:wrap; gap: 6px; }
-        .qr{
-          font: 600 11px/1 var(--font-mono);
-          letter-spacing: .12em; text-transform: uppercase;
-          color: var(--muted);
-          padding: 8px 11px;
-          border-radius: 999px;
-          border: 1px solid var(--line);
-          background: var(--surface-2);
-          cursor: pointer;
-          transition: color .2s var(--easing), border-color .2s var(--easing), background .2s var(--easing), transform .16s var(--easing);
-        }
-        .qr:hover{
-          color: var(--accent);
-          border-color: var(--line-3);
-          background: rgba(124,138,255,.06);
-        }
-        .panel-controls{ margin-top:auto; display:flex; gap:8px; }
-        .mini{
-          padding:10px 14px;
-          border-radius: 999px;
-          border:1px solid var(--line-2);
-          color: var(--text);
-          background: var(--surface);
-          font-size: 13px;
-          transition: color .2s var(--easing), border-color .2s var(--easing), background .2s var(--easing), transform .16s var(--easing);
-          cursor: pointer;
-        }
-        .mini:hover{
-          background: var(--surface-2);
-          border-color: var(--line-3);
-          color: var(--accent);
-        }
-        .mini.close{ margin-left:auto; }
-        @media (max-width: 980px){ .explorer{ grid-template-columns: 1fr; } .explorer-stage{ min-height: 320px; } }
-      `));
-}
-window.Explorer = Explorer;
-})();
-
 /* ---- Contact ---- */
 (function(){
 function Contact() {
   return React.createElement("section", {
-    className: "section contact",
+    className: "finale",
     id: "contact"
   }, React.createElement("div", {
-    className: "contact-card reveal"
-  }, React.createElement("div", {
-    className: "contact-bloom",
-    "aria-hidden": "true"
+    className: "contact-slot",
+    "aria-hidden": "true",
+    "data-state": "approved",
+    "data-lcd1": "APPROVED",
+    "data-lcd2": "WELCOME"
   }), React.createElement("div", {
-    className: "contact-grid",
-    "aria-hidden": "true"
-  }), React.createElement("span", {
-    className: "kicker"
-  }, React.createElement("span", {
-    className: "dot"
-  }), "Get in touch"), React.createElement("h2", {
-    className: "display-2"
-  }, "Every dock deserves ", React.createElement("em", {
-    className: "serif-italic grad-text"
-  }, "a VeriGate"), "."), React.createElement("p", {
-    className: "lede center"
-  }, "Contact Owner for More Details."), React.createElement("a", {
+    className: "finale-card"
+  }, React.createElement("h2", null, "Every dock deserves ", React.createElement("em", null, "a VeriGate"), "."), React.createElement("p", null, "Contact the owner for more details."), React.createElement("a", {
     href: "https://www.linkedin.com/in/osamasunaallah/",
     target: "_blank",
     rel: "noopener noreferrer",
-    className: "btn primary big contact-cta"
+    className: "btn primary"
   }, React.createElement("svg", {
     viewBox: "0 0 24 24",
     fill: "currentColor",
-    width: "18",
-    height: "18",
-    "aria-hidden": "true"
-  }, React.createElement("path", {
-    d: "M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14zM8.34 18.34V9.67H5.67v8.67h2.67zM7 8.5a1.55 1.55 0 1 0 0-3.1 1.55 1.55 0 0 0 0 3.1zm11.34 9.84v-4.74c0-2.54-1.36-3.72-3.17-3.72-1.46 0-2.11.8-2.48 1.36V9.67h-2.67c.04.75 0 8.67 0 8.67h2.67v-4.84c0-.24.02-.48.09-.66.19-.48.63-.98 1.37-.98.97 0 1.36.74 1.36 1.82v4.66h2.83z"
-  })), "Connect on LinkedIn", React.createElement("svg", {
-    className: "contact-cta-arrow",
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: "2.2",
     width: "16",
     height: "16",
     "aria-hidden": "true"
   }, React.createElement("path", {
-    d: "M5 12h14M13 6l6 6-6 6"
-  })))), React.createElement("style", null, `
-        .contact{ padding-bottom: clamp(60px, 8vw, 110px); }
-        .contact-card{
-          position:relative; text-align:center;
-          padding: clamp(48px, 7vw, 92px) clamp(24px, 4vw, 60px);
-          border-radius: var(--r-2xl);
-          border:1px solid var(--line);
-          overflow:hidden;
-          background:
-            radial-gradient(900px 360px at 50% -20%, rgba(124,138,255,.30), transparent 60%),
-            radial-gradient(900px 360px at 50% 120%, rgba(167,139,250,.22), transparent 60%),
-            linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
-            var(--surface);
-          box-shadow: var(--shadow-lg);
-          display: flex; flex-direction: column; align-items: center;
-        }
-        .contact-bloom{
-          position: absolute;
-          left: 50%; top: 0;
-          width: 640px; height: 640px;
-          transform: translate(-50%, -55%);
-          background: radial-gradient(closest-side, rgba(124,138,255,.28), rgba(124,138,255,.08) 55%, transparent 75%);
-          pointer-events: none;
-        }
-        @keyframes contactBloom{
-          0%, 100%{ transform: translate(-50%, -55%) scale(1); opacity: .85; }
-          50%{ transform: translate(-50%, -55%) scale(1.06); opacity: 1; }
-        }
-        .contact-grid{
-          position: absolute; inset: 0;
-          background-image:
-            linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
-          background-size: 56px 56px;
-          mask-image: radial-gradient(ellipse at 50% 50%, #000 30%, transparent 75%);
-          -webkit-mask-image: radial-gradient(ellipse at 50% 50%, #000 30%, transparent 75%);
-          pointer-events: none;
-        }
-        .contact-card > *:not(.contact-bloom):not(.contact-grid){ position: relative; z-index: 1; }
-        .contact-cta{ position: relative; }
-        .contact-cta-arrow{ transition: transform .35s var(--easing-spring); margin-left: 2px; }
-        .contact-cta:hover .contact-cta-arrow{ transform: translateX(5px); }
-        .contact-card .kicker{
-          display:inline-flex; align-items:center; gap:10px;
-          font: 600 12px/1 var(--font-mono);
-          letter-spacing: .22em; text-transform: uppercase;
-          color: var(--muted);
-          padding: 8px 12px;
-          border:1px solid var(--line);
-          border-radius: 999px;
-          background: rgba(255,255,255,.04);
-          margin: 0 auto;
-        }
-        .contact-card .kicker .dot{
-          width:8px; height:8px; border-radius:50%;
-          background: var(--accent);
-          box-shadow: 0 0 0 4px rgba(124,138,255,.14), 0 0 18px rgba(124,138,255,.7);
-        }
-        .contact-card .display-2{
-          font-size: clamp(34px, 5.4vw, 72px);
-          line-height: 1.02; letter-spacing: -0.032em;
-          margin: 20px auto 28px;
-          max-width: 22ch;
-          color: var(--text);
-          text-wrap: balance;
-        }
-        .contact-card .display-2 em.grad-text{
-          background: linear-gradient(180deg, #FFFFFF 0%, #C5CAF8 55%, #A78BFA 100%);
-          -webkit-background-clip: text; background-clip: text; color: transparent;
-        }
-        .contact-card .lede.center{ margin: 0 auto 30px; text-align: center; max-width: 60ch; font-size: clamp(16px, 1.2vw, 19px); line-height: 1.6; color: var(--text-2); }
-      `));
+    d: "M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14zM8.34 18.34V9.67H5.67v8.67h2.67zM7 8.5a1.55 1.55 0 1 0 0-3.1 1.55 1.55 0 0 0 0 3.1zm11.34 9.84v-4.74c0-2.54-1.36-3.72-3.17-3.72-1.46 0-2.11.8-2.48 1.36V9.67h-2.67c.04.75 0 8.67 0 8.67h2.67v-4.84c0-.24.02-.48.09-.66.19-.48.63-.98 1.37-.98.97 0 1.36.74 1.36 1.82v4.66h2.83z"
+  })), "Connect on LinkedIn")));
 }
 window.Contact = Contact;
 })();
@@ -3934,6 +3142,42 @@ function App() {
   const [introMounted, setIntroMounted] = React.useState(true);
   const [introKey, setIntroKey] = React.useState(0);
   React.useEffect(() => {
+    const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || !window.Lenis) return undefined;
+    const lenis = new window.Lenis({
+      lerp: 0.1,
+      smoothWheel: true,
+      wheelMultiplier: 1.25
+    });
+    window.__lenis = lenis;
+    let raf = 0;
+    const loop = t => {
+      lenis.raf(t);
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    const onClick = e => {
+      const a = e.target.closest && e.target.closest('a[href^="#"]');
+      if (!a) return;
+      const id = a.getAttribute('href');
+      if (id === '#') return;
+      const el = document.querySelector(id);
+      if (!el) return;
+      e.preventDefault();
+      lenis.scrollTo(el, {
+        offset: id === '#product' ? 0 : -70,
+        duration: 1.6
+      });
+    };
+    document.addEventListener('click', onClick);
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener('click', onClick);
+      lenis.destroy();
+      window.__lenis = null;
+    };
+  }, []);
+  React.useEffect(() => {
     const els = document.querySelectorAll('.reveal');
     const io = new IntersectionObserver(entries => {
       entries.forEach(e => {
@@ -3959,9 +3203,7 @@ function App() {
   return React.createElement(React.Fragment, null, introMounted && React.createElement(PhoenixIntro, {
     key: introKey,
     onDone: () => setIntroMounted(false)
-  }), React.createElement(Nav, null), React.createElement("main", null, React.createElement(HeroPhoto, null), React.createElement(Architecture, null), React.createElement("div", {
-    className: "div-glow"
-  }), React.createElement(Capabilities, null), React.createElement(Problems, null), React.createElement(Solution, null), React.createElement(Process, null), React.createElement(Explorer, null), React.createElement(Contact, null)), React.createElement(Footer, null));
+  }), React.createElement(DeviceTour, null), React.createElement(Nav, null), React.createElement("main", null, React.createElement(Story, null), React.createElement(Process, null), React.createElement(Contact, null)), React.createElement(Footer, null));
 }
 if (!window.__verigateRoot) {
   window.__verigateRoot = ReactDOM.createRoot(document.getElementById('root'));

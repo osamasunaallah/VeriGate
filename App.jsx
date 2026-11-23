@@ -9,6 +9,29 @@ function App(){
   // fresh effect, fresh GLB animation timeline).
   const [introKey, setIntroKey]         = React.useState(0);
 
+  // smooth wheel scrolling (Lenis); touch keeps the phone's own scrolling
+  React.useEffect(() => {
+    const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || !window.Lenis) return undefined;
+    const lenis = new window.Lenis({ lerp: 0.1, smoothWheel: true, wheelMultiplier: 1.25 });
+    window.__lenis = lenis;
+    let raf = 0;
+    const loop = (t) => { lenis.raf(t); raf = requestAnimationFrame(loop); };
+    raf = requestAnimationFrame(loop);
+    const onClick = (e) => {
+      const a = e.target.closest && e.target.closest('a[href^="#"]');
+      if (!a) return;
+      const id = a.getAttribute('href');
+      if (id === '#') return;
+      const el = document.querySelector(id);
+      if (!el) return;
+      e.preventDefault();
+      lenis.scrollTo(el, { offset: id === '#product' ? 0 : -70, duration: 1.6 });
+    };
+    document.addEventListener('click', onClick);
+    return () => { cancelAnimationFrame(raf); document.removeEventListener('click', onClick); lenis.destroy(); window.__lenis = null; };
+  }, []);
+
   React.useEffect(() => {
     const els = document.querySelectorAll('.reveal');
     const io = new IntersectionObserver((entries) => {
@@ -33,16 +56,13 @@ function App(){
   return (
     <>
       {introMounted && <PhoenixIntro key={introKey} onDone={() => setIntroMounted(false)} />}
+      <DeviceTour />
       <Nav />
       <main>
-        <HeroPhoto />
-        <Architecture />
-        <div className="div-glow" />
-        <Capabilities />
-        <Problems />
-        <Solution />
+        {/* 23.11.2026: one pinned story with the 3D device beside short chapters,
+            then the process animation and the contact card */}
+        <Story />
         <Process />
-        <Explorer />
         <Contact />
       </main>
       <Footer />

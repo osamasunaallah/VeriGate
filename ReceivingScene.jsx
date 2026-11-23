@@ -521,6 +521,15 @@ function ReceivingScene({ timeRef }){
       };
       ro = new ResizeObserver(size); ro.observe(mount); size();
       io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; }, { threshold: 0 }); io.observe(mount);
+      // compile every shader once, in a quiet moment, with everything shown: the worker
+      // and the card only appear mid-animation and used to compile then (a 0.4 s stall)
+      const warmUp = () => {
+        if (!mount.isConnected) return;
+        const hidden = []; scene.traverse(o => { if (!o.visible){ hidden.push(o); o.visible = true; } });
+        try { renderer.compile(scene, camera); } catch (e) {}
+        hidden.forEach(o => { o.visible = false; });
+      };
+      if (window.requestIdleCallback) requestIdleCallback(warmUp, { timeout: 4000 }); else setTimeout(warmUp, 1500);
 
       let last = -1, lastPaint = 0;
       const loop = () => {

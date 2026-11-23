@@ -1,360 +1,6 @@
-/* DeviceWithLCD — self-contained 3D product component.
-   ============================================================
-   · Loads ./verigate-device.glb via the GLTFLoader bootstrapped in
-     index.html (window.THREE, window.GLTFLoader).
-   · Finds the mesh named "LCD_Screen_Plane" in the loaded scene.
-   · Builds an HTMLCanvasElement that draws the LCD interface
-     (gradient background, dot-matrix grid, two text lines, blinking
-     cursor, animated scan beam) every frame, wraps it as a
-     THREE.CanvasTexture, and assigns it as the LCD_Screen_Plane
-     material's map.
-   · The whole device — body, switch, AND the LCD plane — rotates as
-     one object because the LCD is a child mesh of the model's root.
-     No floating divs; the screen interface is baked into the model's
-     texture and therefore stays glued in 3D space.
-   · Props:
-       - activeChapter (number 0..N-1): which chapter LCD content to show
-       - chapters (array): chapter data ({ lcdLine1, lcdLine2, state })
-       - rotation ({ y, x }): optional model rotation (radians)
-   · Pure React-managed Three.js — no R3F dependency required for the
-     no-build Babel-standalone setup, but the component encapsulates the
-     full WebGL lifecycle (mount → render loop → unmount disposal). */
-
-function DeviceWithLCD({
-  activeChapter = 0,
-  chapters = [],
-  rotation,
-  className = ''
-}){
-  const mountRef = React.useRef(null);
-  const stateRef = React.useRef({});
-  // Latest props for the animation loop (avoids restarting the scene)
-  const propsRef = React.useRef({ activeChapter, chapters, rotation });
-  React.useEffect(() => {
-    propsRef.current = { activeChapter, chapters, rotation };
-  }, [activeChapter, chapters, rotation]);
-
-  React.useEffect(() => {
-    let alive = true;
-    let raf = 0;
-
-    const start = () => {
-      const THREE = window.THREE;
-      const GLTFLoader = window.GLTFLoader;
-      if (!THREE || !GLTFLoader || !mountRef.current) {
-        // Re-try when threeready fires
-        return;
-      }
-
-      const mount = mountRef.current;
-      const initialW = Math.max(mount.clientWidth, 200);
-      const initialH = Math.max(mount.clientHeight, 200);
-
-      // ----- Scene + camera + renderer -----
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(28, initialW / initialH, 0.001, 50);
-      // Roughly match the original Blender camera angle (front + right + slightly above)
-      camera.position.set(0.18, 0.04, 0.20);
-      camera.lookAt(0, 0, 0);
-
-      const renderer = new THREE.WebGLRenderer({
-        antialias: true,
-        alpha: true,
-        powerPreference: 'high-performance'
-      });
-      renderer.setSize(initialW, initialH);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-      if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.12;
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      mount.appendChild(renderer.domElement);
-      // studio reflections so the matte-black body shows its edges and form
-      if (window.RoomEnvironment){
-        const pmrem = new THREE.PMREMGenerator(renderer);
-        scene.environment = pmrem.fromScene(new window.RoomEnvironment(), 0.04).texture;
-        pmrem.dispose();
-      }
-      renderer.domElement.style.display = 'block';
-      renderer.domElement.style.width = '100%';
-      renderer.domElement.style.height = '100%';
-
-      // ----- Lights: black-and-white studio light with one blue rim (22.11.2026) -----
-      const ambient = new THREE.AmbientLight(0xffffff, 0.22);
-      scene.add(ambient);
-
-      const key = new THREE.DirectionalLight(0xffffff, 2.6);
-      key.position.set(0.55, 0.6, 0.5);
-      scene.add(key);
-
-      const fill = new THREE.DirectionalLight(0xffffff, 0.35);
-      fill.position.set(-0.45, 0.20, 0.30);
-      scene.add(fill);
-
-      const rim = new THREE.DirectionalLight(0x2d6bff, 2.4);
-      rim.position.set(-0.30, 0.35, -0.50);
-      scene.add(rim);
-
-      const top = new THREE.DirectionalLight(0xffffff, 1.5);
-      top.position.set(0.40, 0.70, -0.60);
-      scene.add(top);
-
-      // one big overhead spotlight: lights the device from above, throws a pool
-      // of light on the floor and casts the device's shadow into it
-      const lamp = new THREE.SpotLight(0xffffff, 12, 0, Math.PI / 10, 0.5, 0);
-      lamp.position.set(0.0, 0.36, 0.06);
-      lamp.target.position.set(0, -0.05, 0);
-      lamp.castShadow = true;
-      lamp.shadow.mapSize.set(1024, 1024);
-      lamp.shadow.camera.near = 0.05;
-      lamp.shadow.camera.far = 1.2;
-      lamp.shadow.bias = -0.0004;
-      lamp.shadow.radius = 6;
-      scene.add(lamp); scene.add(lamp.target);
-      // the floor that catches the light: dark, fading out at its edge
-      const fadeCv = document.createElement('canvas'); fadeCv.width = fadeCv.height = 256;
-      const fctx = fadeCv.getContext('2d'), fg = fctx.createRadialGradient(128,128,0,128,128,128);
-      fg.addColorStop(0,'#fff'); fg.addColorStop(.45,'#aaa'); fg.addColorStop(.8,'#333'); fg.addColorStop(1,'#000');
-      fctx.fillStyle = fg; fctx.fillRect(0,0,256,256);
-      const floor = new THREE.Mesh(new THREE.CircleGeometry(0.075, 64),
-        new THREE.MeshStandardMaterial({ color: 0x1c1c1c, roughness: 1, metalness: 0, envMapIntensity: 0, transparent: true, alphaMap: new THREE.CanvasTexture(fadeCv), depthWrite: false }));
-      floor.rotation.x = -Math.PI / 2;
-      floor.receiveShadow = true;
-      floor.visible = false;          // placed under the device once it has loaded
-      scene.add(floor);
-
-      // ----- LCD canvas (drawn each frame, used as a CanvasTexture) -----
-      // 5:1 aspect ratio matches the model's 49.14mm × 9.72mm LCD glass plane
-      const LCD_W = 1024, LCD_H = 220;
-      const lcdCanvas = document.createElement('canvas');
-      lcdCanvas.width = LCD_W;
-      lcdCanvas.height = LCD_H;
-      const lcdCtx = lcdCanvas.getContext('2d');
-      const lcdTexture = new THREE.CanvasTexture(lcdCanvas);
-      if (THREE.SRGBColorSpace) lcdTexture.colorSpace = THREE.SRGBColorSpace;
-      lcdTexture.flipY = true;          // common GLB convention
-      lcdTexture.anisotropy = 8;
-      lcdTexture.minFilter = THREE.LinearFilter;
-      lcdTexture.magFilter = THREE.LinearFilter;
-
-      let lcdMesh = null;
-      let model = null;
-
-      // ----- Load the GLB -----
-      const loader = new GLTFLoader();
-      loader.load(
-        './verigate-device.glb?v=21',
-        (gltf) => {
-          if (!alive) return;
-          model = gltf.scene;
-
-          // Center model on origin so rotations look natural
-          const box = new THREE.Box3().setFromObject(model);
-          const center = box.getCenter(new THREE.Vector3());
-          model.position.sub(center);
-
-          // Fit the model into the camera frustum: scale so its largest
-          // dimension fills the viewport reasonably at the camera distance.
-          const size = box.getSize(new THREE.Vector3());
-          const maxDim = Math.max(size.x, size.y, size.z);
-          const targetMax = 0.10;   // device should be ~10 cm in scene units
-          const fitScale = targetMax / maxDim;
-          model.scale.setScalar(fitScale);
-
-          // Find the LCD_Screen_Plane and apply the canvas texture
-          model.traverse((obj) => {
-            if (!obj.isMesh) return;
-            if (obj.name === 'LCD_Screen_Plane') {
-              lcdMesh = obj;
-              const lcdMat = new THREE.MeshBasicMaterial({
-                map: lcdTexture,
-                toneMapped: false,           // keep the LCD bright through tone mapping
-                transparent: false
-              });
-              lcdMesh.material = lcdMat;
-            }
-          });
-
-          // the device casts its shadow into the lamp's pool and reflects the studio
-          model.traverse((o) => {
-            if (!o.isMesh || o === lcdMesh) return;
-            o.castShadow = true;
-            if (o.material && 'envMapIntensity' in o.material) o.material.envMapIntensity = 0.5;
-          });
-          model.updateMatrixWorld(true);
-          floor.position.y = new THREE.Box3().setFromObject(model).min.y - 0.0005;
-          floor.visible = true;
-
-          scene.add(model);
-          stateRef.current.model = model;
-          stateRef.current.lcdMesh = lcdMesh;
-        },
-        undefined,
-        (err) => { console.error('GLB load error:', err); }
-      );
-
-      // ----- Resize -----
-      const onResize = () => {
-        const w = Math.max(mount.clientWidth, 200);
-        const h = Math.max(mount.clientHeight, 200);
-        camera.aspect = w / h;
-        camera.updateProjectionMatrix();
-        renderer.setSize(w, h);
-      };
-      window.addEventListener('resize', onResize);
-
-      // Observe parent size too (sticky-scroll layout)
-      let resizeObs = null;
-      if (typeof ResizeObserver !== 'undefined') {
-        resizeObs = new ResizeObserver(onResize);
-        resizeObs.observe(mount);
-      }
-
-      // ----- Pointer drag rotation (user can spin the device) -----
-      let dragging = false;
-      let dragStartX = 0, dragStartY = 0;
-      let dragYaw = 0, dragPitch = 0;          // current values
-      let dragYawT = 0, dragPitchT = 0;        // target values
-      let savedYaw = 0, savedPitch = 0;
-      const onPointerDown = (e) => {
-        if (e.button !== undefined && e.button !== 0) return;
-        dragging = true;
-        dragStartX = e.clientX; dragStartY = e.clientY;
-        savedYaw = dragYaw; savedPitch = dragPitch;
-        try { renderer.domElement.setPointerCapture(e.pointerId); } catch(_){}
-      };
-      const onPointerMove = (e) => {
-        if (!dragging) return;
-        const dx = e.clientX - dragStartX;
-        const dy = e.clientY - dragStartY;
-        // 0.3° per pixel, clamped — natural feel without losing the device
-        dragYawT   = savedYaw   + Math.max(-1.6, Math.min(1.6, dx * 0.005));
-        dragPitchT = savedPitch + Math.max(-0.8, Math.min(0.8, dy * 0.004));
-      };
-      const onPointerUp = () => {
-        if (!dragging) return;
-        dragging = false;
-        // Spring back to 0 over a few frames
-        dragYawT = 0;
-        dragPitchT = 0;
-      };
-      renderer.domElement.addEventListener('pointerdown', onPointerDown);
-      window.addEventListener('pointermove', onPointerMove);
-      window.addEventListener('pointerup', onPointerUp);
-      window.addEventListener('pointercancel', onPointerUp);
-
-      // ----- Animation loop — heavily throttled for performance -----
-      // - Three.js renderer.render() is capped at 30 fps (every other RAF)
-      // - LCD canvas redraw is capped at 15 fps + on chapter/state change
-      // The model's idle rotation is slow enough that 30fps reads as smooth
-      // and we save ~50% of GPU cycles vs an unthrottled loop.
-      // Renders every frame while the device is on screen (smooth motion),
-      // and not at all while it is scrolled away or the tab is hidden.
-      let lastLcdTime = 0;
-      let lastChapterIdx = -1;
-      let spin = 0, lastSpinT = 0;   // slow turntable rotation (22.11.2026)
-      const LCD_INTERVAL = 1000 / 20;
-      let onScreen = true;
-      const vis = typeof IntersectionObserver !== 'undefined'
-        ? new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; }, { rootMargin: '80px' }) : null;
-      if (vis) vis.observe(mount);
-      stateRef.current.vis = vis;
-      const animate = (t) => {
-        if (!alive) return;
-        raf = requestAnimationFrame(animate);
-        if (!onScreen || document.hidden) return;
-        const tMs = t || performance.now();
-
-        const { activeChapter, chapters, rotation } = propsRef.current;
-        const chap = chapters && chapters.length ? chapters[Math.max(0, Math.min(chapters.length - 1, activeChapter))] : {};
-
-        // Redraw LCD canvas only periodically — OR immediately on chapter change
-        const chapterChanged = activeChapter !== lastChapterIdx;
-        if (chapterChanged || tMs - lastLcdTime > LCD_INTERVAL){
-          drawLCD(lcdCtx, lcdCanvas, chap, tMs);
-          lcdTexture.needsUpdate = true;
-          lastLcdTime = tMs;
-          lastChapterIdx = activeChapter;
-        }
-
-        if (model){
-          dragYaw   += (dragYawT   - dragYaw)   * 0.16;
-          dragPitch += (dragPitchT - dragPitch) * 0.16;
-          const dt = lastSpinT ? Math.min(0.05, (tMs - lastSpinT) / 1000) : 0;
-          lastSpinT = tMs;
-          spin += dt * 0.35;            // about one turn every 18 s
-          const idle = spin;
-          const baseY = (rotation && typeof rotation.y === 'number') ? rotation.y : 0;
-          const baseX = (rotation && typeof rotation.x === 'number') ? rotation.x : 0;
-          model.rotation.y = baseY + idle + dragYaw;
-          model.rotation.x = baseX + dragPitch * 0.6;
-          model.position.y = Math.sin(tMs * 0.0009) * 0.0025;
-        }
-
-        renderer.render(scene, camera);
-      };
-      animate(0);
-
-      stateRef.current = {
-        ...stateRef.current,
-        renderer, scene, camera, lcdCanvas, lcdCtx, lcdTexture,
-        onResize, resizeObs,
-        onPointerDown, onPointerMove, onPointerUp
-      };
-    };
-
-    // Three.js may not be ready yet (module loads async). Wait for the event.
-    if (window.__threeReady) start();
-    else window.addEventListener('threeready', start, { once: true });
-
-    return () => {
-      alive = false;
-      if (raf) cancelAnimationFrame(raf);
-      const s = stateRef.current;
-      if (s.onResize) window.removeEventListener('resize', s.onResize);
-      if (s.resizeObs) s.resizeObs.disconnect();
-      if (s.vis) s.vis.disconnect();
-      if (s.renderer) {
-        if (s.onPointerDown) s.renderer.domElement.removeEventListener('pointerdown', s.onPointerDown);
-        s.renderer.dispose();
-        if (s.renderer.domElement.parentNode) {
-          s.renderer.domElement.parentNode.removeChild(s.renderer.domElement);
-        }
-      }
-      if (s.onPointerMove) window.removeEventListener('pointermove', s.onPointerMove);
-      if (s.onPointerUp) {
-        window.removeEventListener('pointerup', s.onPointerUp);
-        window.removeEventListener('pointercancel', s.onPointerUp);
-      }
-      if (s.lcdTexture) s.lcdTexture.dispose();
-      if (s.scene) {
-        s.scene.traverse((obj) => {
-          if (obj.isMesh) {
-            if (obj.geometry) obj.geometry.dispose();
-            if (obj.material) {
-              if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose && m.dispose());
-              else obj.material.dispose && obj.material.dispose();
-            }
-          }
-        });
-      }
-    };
-  }, []);
-
-  return (
-    <div
-      ref={mountRef}
-      className={'dwl-mount ' + (className || '')}
-      style={{
-        width: '100%',
-        height: '100%',
-        touchAction: 'pan-y',
-        cursor: 'grab'
-      }}
-    />
-  );
-}
+/* DeviceWithLCD.jsx: the LCD painter shared by the page-wide device (DeviceTour)
+   and the process animation. (The old hero-only 3D component was replaced by
+   DeviceTour on 23.11.2026.) */
 
 /* drawLCD — pixel-perfect 2D rendering of the LCD interface.
    Reads chapter data and time, paints to the offscreen canvas that
@@ -362,10 +8,16 @@ function DeviceWithLCD({
 function drawLCD(ctx, canvas, chap, time){
   const w = canvas.width, h = canvas.height;
   const isApproved = chap && chap.state === 'approved';
+  const isWarn = chap && chap.state === 'warn';
 
   // ---- background gradient (blue idle / green approved) ----
   const bg = ctx.createRadialGradient(w * 0.5, h * 0.35, 50, w * 0.5, h * 0.35, w * 0.7);
-  if (isApproved) {
+  if (isWarn) {
+    bg.addColorStop(0.00, '#D8463B');
+    bg.addColorStop(0.30, '#B0302A');
+    bg.addColorStop(0.65, '#7E1D1B');
+    bg.addColorStop(1.00, '#561312');
+  } else if (isApproved) {
     bg.addColorStop(0.00, '#2DD279');
     bg.addColorStop(0.30, '#1aa05a');
     bg.addColorStop(0.65, '#0d6e3a');
@@ -402,15 +54,15 @@ function drawLCD(ctx, canvas, chap, time){
 
   // Line 1 — main heading
   ctx.font = '700 90px "IBM Plex Mono", "Menlo", "Consolas", monospace';
-  ctx.shadowColor = isApproved ? 'rgba(170,255,200,0.9)' : 'rgba(170,210,255,0.9)';
+  ctx.shadowColor = isWarn ? 'rgba(255,190,180,0.9)' : isApproved ? 'rgba(170,255,200,0.9)' : 'rgba(170,210,255,0.9)';
   ctx.shadowBlur = 26;
-  ctx.fillStyle = isApproved ? '#E8FFEF' : '#E0EBFF';
+  ctx.fillStyle = isWarn ? '#FFECE8' : isApproved ? '#E8FFEF' : '#E0EBFF';
   ctx.fillText(line1 + cursor, w / 2, h * 0.36);
 
   // Line 2 — sub heading
   ctx.font = '600 56px "IBM Plex Mono", "Menlo", "Consolas", monospace';
   ctx.shadowBlur = 18;
-  ctx.fillStyle = isApproved ? '#C8F5DA' : '#B5CDFF';
+  ctx.fillStyle = isWarn ? '#FFC9C0' : isApproved ? '#C8F5DA' : '#B5CDFF';
   ctx.fillText(line2, w / 2, h * 0.74);
 
   // ---- animated scan beam ----
@@ -433,5 +85,4 @@ function drawLCD(ctx, canvas, chap, time){
   ctx.fillRect(0, 0, w, h);
 }
 
-window.DeviceWithLCD = DeviceWithLCD;
 window.drawLCD = drawLCD;   // the process animation paints its LCD with this too

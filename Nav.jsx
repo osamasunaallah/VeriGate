@@ -2,7 +2,7 @@
 const NAV_LINKS = [
   { label: 'Product',    href: '#product' },
   { label: 'Process',    href: '#process' },
-  { label: 'Components', href: '#components' },
+  { label: 'Inside',     href: '#build' },
   { label: 'Contact',    href: '#contact' },
 ];
 
