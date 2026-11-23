@@ -134,7 +134,7 @@ function Process(){
           padding: 14px;
           transition: transform .25s var(--easing-out);
         }
-        .video-play:hover svg{ transform: scale(1.06); }
+        @media (hover:hover) and (pointer:fine){.video-play:hover svg{ transform: scale(1.06); }}
         .video-bar{
           position:absolute; left:0; right:0; bottom:0; z-index:4;
           display:flex; align-items:center; gap: 14px;
@@ -166,15 +166,17 @@ function Process(){
           background: linear-gradient(90deg, transparent, var(--accent), transparent);
           transform: scaleX(0); transition: transform .6s var(--easing-out);
         }
-        .step:hover{ transform: translateY(-4px); border-color: var(--line-2); box-shadow: var(--shadow-md); }
-        .step:hover::before, .step.is-active::before{ transform: scaleX(1); }
+        @media (hover:hover) and (pointer:fine){.step:hover{ transform: translateY(-4px); border-color: var(--line-2); box-shadow: var(--shadow-md); }}
+        .step.is-active::before{ transform: scaleX(1); }
+@media (hover:hover) and (pointer:fine){.step:hover::before{ transform: scaleX(1); }}
         .step.is-active{ border-color: var(--line-3); background: linear-gradient(180deg, rgba(124,138,255,.10), rgba(124,138,255,.02)), var(--surface); }
         .step-num{
           font-family: var(--font-display); font-size: 34px; line-height: 1; letter-spacing: -0.02em;
           color: transparent; -webkit-text-stroke: 1.2px rgba(124,138,255,.5);
           transition: -webkit-text-stroke-color .35s var(--easing);
         }
-        .step:hover .step-num, .step.is-active .step-num{ -webkit-text-stroke-color: var(--accent-2); }
+        .step.is-active .step-num{ -webkit-text-stroke-color: var(--accent-2); }
+@media (hover:hover) and (pointer:fine){.step:hover .step-num{ -webkit-text-stroke-color: var(--accent-2); }}
         .step-arrow{ display: none; }
         .step h3{ margin: 0; font-size: 18px; letter-spacing: -0.01em; font-family: var(--font-display); color: var(--text); }
         .step p{ margin: 0; color: var(--muted); font-size: 14.5px; line-height: 1.55; }

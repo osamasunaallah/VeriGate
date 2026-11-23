@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>VeriGate</title>
 <meta name="description" content="VeriGate, an IoT receiving device: one tap, one verified shipment, one source of truth.">
 <meta name="author" content="Osama Sunaallah">
 <meta name="theme-color" content="#050505">
+<meta name="color-scheme" content="dark">
 <script>/* preload the 2 MB intro bird only when the intro will actually play (once per session) */
 try{if(!sessionStorage.getItem('verigate_intro_played')&&!matchMedia('(prefers-reduced-motion: reduce)').matches){var l=document.createElement('link');l.rel='preload';l.href='./phoenix-bird.glb?v=40';l.as='fetch';l.type='model/gltf-binary';l.crossOrigin='anonymous';document.head.appendChild(l)}}catch(e){}</script>
 <link rel="preload" href="./verigate-logo.png?v=31" as="image">
@@ -18,7 +19,7 @@ try{if(!sessionStorage.getItem('verigate_intro_played')&&!matchMedia('(prefers-r
 <meta property="og:image" content="./process-thumbnail.jpg">
 <meta name="twitter:card" content="summary_large_image">
 
-<link rel="stylesheet" href="kit.css?v=63">
+<link rel="stylesheet" href="kit.css?v=64">
 <link rel="icon" type="image/png" href="./product-clean.jpg">
 
 <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -51,6 +52,6 @@ try{if(!sessionStorage.getItem('verigate_intro_played')&&!matchMedia('(prefers-r
 
 
   <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js"></script>
-  <script src="app.js?v=58"></script>
+  <script src="app.js?v=59"></script>
 </body>
 </html>

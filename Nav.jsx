@@ -102,12 +102,12 @@ function Nav(){
             drop-shadow(0 0 6px rgba(240,179,117,.30))
             drop-shadow(0 2px 8px rgba(124,138,255,.22));
         }
-        .brand:hover .brand-mark{
+        @media (hover:hover) and (pointer:fine){.brand:hover .brand-mark{
           transform: rotate(-4deg) scale(1.05);
           filter:
             drop-shadow(0 0 10px rgba(240,179,117,.45))
             drop-shadow(0 2px 10px rgba(124,138,255,.30));
-        }
+        }}
         .brand-text{
           font-size: 15px; letter-spacing:.005em;
           color: var(--text);
@@ -129,11 +129,11 @@ function Nav(){
           background: linear-gradient(90deg, transparent, var(--accent), transparent);
           transition: transform .35s var(--easing-out), box-shadow .35s var(--easing-out);
         }
-        .nav-links a:hover{ color: var(--text); background: rgba(255,255,255,.05); }
-        .nav-links a:hover::after{
+        @media (hover:hover) and (pointer:fine){.nav-links a:hover{ color: var(--text); background: rgba(255,255,255,.05); }}
+        @media (hover:hover) and (pointer:fine){.nav-links a:hover::after{
           transform: translateX(-50%) scaleX(1);
           box-shadow: 0 0 10px rgba(124,138,255,.55);
-        }
+        }}
         .nav-cta{
           display: inline-flex; align-items: center; gap: 8px;
           padding:9px 16px 9px 14px;
@@ -144,10 +144,10 @@ function Nav(){
           transition: transform .25s var(--easing-spring), box-shadow .25s var(--easing);
         }
         .nav-cta svg{ display:block; }
-        .nav-cta:hover{
+        @media (hover:hover) and (pointer:fine){.nav-cta:hover{
           transform: translateY(-2px);
           box-shadow: 0 18px 48px rgba(124,138,255,.55), inset 0 1px 0 rgba(255,255,255,.5);
-        }
+        }}
         @media (max-width: 980px){
           .nav-links{ display:none; }
           .kit-nav{ width: min(720px, calc(100% - 20px)); padding: 8px 10px 8px 14px; }

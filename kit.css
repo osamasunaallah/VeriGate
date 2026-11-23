@@ -87,20 +87,20 @@ main{ position: relative; z-index: 1; }
   background: linear-gradient(180deg, #B3BFFF, #6E7CF5);
   box-shadow: 0 12px 32px rgba(124,138,255,.32), inset 0 1px 0 rgba(255,255,255,.4);
 }
-.btn.primary:hover{
+@media (hover:hover) and (pointer:fine){.btn.primary:hover{
   transform: translateY(-2px);
   box-shadow: 0 18px 40px rgba(124,138,255,.4), inset 0 1px 0 rgba(255,255,255,.5);
-}
+}}
 .btn.ghost{
   color: var(--text);
   border:1px solid var(--line-2);
   background: rgba(255,255,255,.03);
 }
-.btn.ghost:hover{
+@media (hover:hover) and (pointer:fine){.btn.ghost:hover{
   border-color: rgba(255,255,255,.28);
   background: rgba(255,255,255,.06);
   transform: translateY(-2px);
-}
+}}
 
 /* =========================================================
    SCROLL REVEAL — slide-up + scale only. No blur (heavier on GPU).
@@ -144,10 +144,7 @@ h1,h2,h3{ text-wrap: balance; }
 p{ text-wrap: pretty; }
 sup{ line-height:0; position:relative; vertical-align:baseline; top:-.5em; }
 .btn:active, .mini:active, .qr:active{ transform: scale(.97); transition-duration: .1s; }
-@media (hover: none){
-  .btn.primary:hover, .solution-points li:hover, .step:hover, .cap:hover .cap-ico,
-  .hot:hover .hot-pin, .contact-cta:hover .contact-cta-arrow, .video-play:hover svg{ transform: none; }
-}
+
 
 /* =========================================================
    Black / white / blue (22.11.2026, Osama): black surfaces 70%,
@@ -196,7 +193,7 @@ sup{ line-height:0; position:relative; vertical-align:baseline; top:-.5em; }
   background: var(--pop) !important; color: var(--on-pop) !important;
   box-shadow: var(--pop-shadow) !important; filter: none !important;
 }
-.btn.primary:hover{ box-shadow: 0 16px 34px -10px rgba(45,107,255,.8) !important; }
+@media (hover:hover) and (pointer:fine){.btn.primary:hover{ box-shadow: 0 16px 34px -10px rgba(45,107,255,.8) !important; }}
 /* section eyebrows dropped: the headings say it */
 .kicker{ display: none !important; }
 .kit-nav{ background: rgba(10,10,10,.86) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
@@ -211,7 +208,7 @@ sup{ line-height:0; position:relative; vertical-align:baseline; top:-.5em; }
   transition-delay: calc(var(--idx, 0) * 80ms) !important;
 }
 .prob-grid.is-spread .prob{ transform: translate3d(0, 0, 0) !important; }
-.prob-grid.is-spread .prob:hover, .cap:hover, .step:hover, .solution-points li:hover{ transform: translate3d(0, -4px, 0) !important; }
+@media (hover:hover) and (pointer:fine){.prob-grid.is-spread .prob:hover, .cap:hover, .step:hover, .solution-points li:hover{ transform: translate3d(0, -4px, 0) !important; }}
 .reveal-left, .reveal-right{ transform: translate3d(0, 28px, 0); }
 .reveal-left.in, .reveal-right.in{ transform: translate3d(0, 0, 0); }
 /* fine grain on the page background (static, drawn once) */
@@ -246,7 +243,8 @@ html.lenis, html.lenis body{ height: auto; }
   padding: 6px 10px; border-radius: 8px; background: #121212; border: 1px solid var(--line);
   font: 500 13px/1 var(--font-body, system-ui); color: var(--text); opacity: 0; transition: opacity .2s, transform .2s var(--easing-out);
 }
-.tour-power:hover .tour-power-tag, .tour-power:focus-visible .tour-power-tag{ opacity: 1; transform: translate3d(0,-50%,0); }
+.tour-power:focus-visible .tour-power-tag{ opacity: 1; transform: translate3d(0,-50%,0); }
+@media (hover:hover) and (pointer:fine){.tour-power:hover .tour-power-tag{ opacity: 1; transform: translate3d(0,-50%,0); }}
 .tour-power:focus-visible{ outline: 2px solid var(--text); outline-offset: 2px; }
 
 /* the story: a tall section with one sticky screen */
@@ -288,7 +286,7 @@ html.lenis, html.lenis body{ height: auto; }
 .st-stats dt{ font: 600 clamp(30px, 3vw, 42px)/1 var(--font-display); letter-spacing: -0.03em; color: var(--text); }
 .st-stats dd{ margin: 0; font-size: 15px; color: var(--text-2); }
 
-.contact-slot{ position: relative; height: clamp(240px, 42vh, 420px); margin-bottom: -40px; pointer-events: none; }
+.contact-slot{ position: relative; height: clamp(240px, 42svh, 420px); margin-bottom: -40px; pointer-events: none; }
 
 /* phones and small tablets: the device in the top part of the screen, the text under it */
 @media (max-width: 899px){
@@ -311,7 +309,7 @@ html.lenis, html.lenis body{ height: auto; }
 
 /* the finale: the device large in the middle, a small contact box under it */
 .finale{ position: relative; min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 90px 20px 56px; }
-.finale .contact-slot{ width: min(1100px, 100%); height: clamp(300px, 58vh, 620px); margin: 0 0 -24px; }
+.finale .contact-slot{ width: min(1100px, 100%); height: clamp(300px, 58svh, 620px); margin: 0 0 -24px; }
 .finale-card{
   position: relative; z-index: 1; width: min(440px, 100%); text-align: center;
   padding: 24px 26px 26px; border-radius: 18px; border: 1px solid var(--line);
@@ -382,3 +380,19 @@ html .ambient::after{
 @media (max-width: 899px){
   .st-h1{ font-size: clamp(34px, 9.8vw, 50px); }
 }
+
+/* mobile-native (Emil Kowalski skill, 23.11.2026): native feel on phones.
+   The page is a scrolling document, so pull-to-refresh stays. */
+html{ -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+a, button, [role="button"], summary, label{ touch-action: manipulation; }
+button, [role="button"], .btn, .mini, .qr, .nav-links a, .nav-cta, .brand, .tour-power, .video-play, .video-btn{
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.nav-links a:active, .nav-cta:active, .brand:active{ opacity: .72; }
+.tour-power:active{ transform: scale(.94); }
+/* the sticky nav clears the notch and the landscape side insets (viewport-fit=cover) */
+html .kit-nav{
+  top: calc(14px + env(safe-area-inset-top, 0px));
+  width: min(1280px, calc(100% - 32px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+}
+.finale{ padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px)); }

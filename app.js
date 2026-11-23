@@ -1089,12 +1089,12 @@ function Nav() {
             drop-shadow(0 0 6px rgba(240,179,117,.30))
             drop-shadow(0 2px 8px rgba(124,138,255,.22));
         }
-        .brand:hover .brand-mark{
+        @media (hover:hover) and (pointer:fine){.brand:hover .brand-mark{
           transform: rotate(-4deg) scale(1.05);
           filter:
             drop-shadow(0 0 10px rgba(240,179,117,.45))
             drop-shadow(0 2px 10px rgba(124,138,255,.30));
-        }
+        }}
         .brand-text{
           font-size: 15px; letter-spacing:.005em;
           color: var(--text);
@@ -1116,11 +1116,11 @@ function Nav() {
           background: linear-gradient(90deg, transparent, var(--accent), transparent);
           transition: transform .35s var(--easing-out), box-shadow .35s var(--easing-out);
         }
-        .nav-links a:hover{ color: var(--text); background: rgba(255,255,255,.05); }
-        .nav-links a:hover::after{
+        @media (hover:hover) and (pointer:fine){.nav-links a:hover{ color: var(--text); background: rgba(255,255,255,.05); }}
+        @media (hover:hover) and (pointer:fine){.nav-links a:hover::after{
           transform: translateX(-50%) scaleX(1);
           box-shadow: 0 0 10px rgba(124,138,255,.55);
-        }
+        }}
         .nav-cta{
           display: inline-flex; align-items: center; gap: 8px;
           padding:9px 16px 9px 14px;
@@ -1131,10 +1131,10 @@ function Nav() {
           transition: transform .25s var(--easing-spring), box-shadow .25s var(--easing);
         }
         .nav-cta svg{ display:block; }
-        .nav-cta:hover{
+        @media (hover:hover) and (pointer:fine){.nav-cta:hover{
           transform: translateY(-2px);
           box-shadow: 0 18px 48px rgba(124,138,255,.55), inset 0 1px 0 rgba(255,255,255,.5);
-        }
+        }}
         @media (max-width: 980px){
           .nav-links{ display:none; }
           .kit-nav{ width: min(720px, calc(100% - 20px)); padding: 8px 10px 8px 14px; }
@@ -2950,7 +2950,7 @@ function Process() {
           padding: 14px;
           transition: transform .25s var(--easing-out);
         }
-        .video-play:hover svg{ transform: scale(1.06); }
+        @media (hover:hover) and (pointer:fine){.video-play:hover svg{ transform: scale(1.06); }}
         .video-bar{
           position:absolute; left:0; right:0; bottom:0; z-index:4;
           display:flex; align-items:center; gap: 14px;
@@ -2982,15 +2982,17 @@ function Process() {
           background: linear-gradient(90deg, transparent, var(--accent), transparent);
           transform: scaleX(0); transition: transform .6s var(--easing-out);
         }
-        .step:hover{ transform: translateY(-4px); border-color: var(--line-2); box-shadow: var(--shadow-md); }
-        .step:hover::before, .step.is-active::before{ transform: scaleX(1); }
+        @media (hover:hover) and (pointer:fine){.step:hover{ transform: translateY(-4px); border-color: var(--line-2); box-shadow: var(--shadow-md); }}
+        .step.is-active::before{ transform: scaleX(1); }
+@media (hover:hover) and (pointer:fine){.step:hover::before{ transform: scaleX(1); }}
         .step.is-active{ border-color: var(--line-3); background: linear-gradient(180deg, rgba(124,138,255,.10), rgba(124,138,255,.02)), var(--surface); }
         .step-num{
           font-family: var(--font-display); font-size: 34px; line-height: 1; letter-spacing: -0.02em;
           color: transparent; -webkit-text-stroke: 1.2px rgba(124,138,255,.5);
           transition: -webkit-text-stroke-color .35s var(--easing);
         }
-        .step:hover .step-num, .step.is-active .step-num{ -webkit-text-stroke-color: var(--accent-2); }
+        .step.is-active .step-num{ -webkit-text-stroke-color: var(--accent-2); }
+@media (hover:hover) and (pointer:fine){.step:hover .step-num{ -webkit-text-stroke-color: var(--accent-2); }}
         .step-arrow{ display: none; }
         .step h3{ margin: 0; font-size: 18px; letter-spacing: -0.01em; font-family: var(--font-display); color: var(--text); }
         .step p{ margin: 0; color: var(--muted); font-size: 14.5px; line-height: 1.55; }
