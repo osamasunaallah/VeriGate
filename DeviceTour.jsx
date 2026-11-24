@@ -51,7 +51,9 @@ function DeviceTour(){
       const camera = new THREE.PerspectiveCamera(FOV, vw / vh, 0.01, 5);
       camera.position.set(0, 0, D); camera.lookAt(0, 0, 0);
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+      // the canvas covers the whole window: 1x on large screens, a little more on phones
+      const dpr = () => Math.min(window.devicePixelRatio || 1, innerWidth * innerHeight > 900000 ? 1 : 1.25);
+      renderer.setPixelRatio(dpr());
       renderer.setSize(vw, vh);
       if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -74,6 +76,12 @@ function DeviceTour(){
       const fill = new THREE.DirectionalLight(0xffffff, 0.35); fill.position.set(-0.45, 0.2, 0.3); scene.add(fill);
       const rim = new THREE.DirectionalLight(0x2d6bff, 2.4); rim.position.set(-0.3, 0.35, -0.5); scene.add(rim);
       const topL = new THREE.DirectionalLight(0xffffff, 1.5); topL.position.set(0.4, 0.7, -0.6); scene.add(topL);
+      // hero only (24.11.2026): cool light rising from the haze below, and a soft front-left key,
+      // so the black face picks up a gradient instead of reading as a flat slab
+      const hazeL = new THREE.DirectionalLight(0xd4e0ff, 0); hazeL.position.set(0.1, -0.7, 0.55); scene.add(hazeL);
+      // and a cool light from the right, so the side that shows reads as a separate face
+      const sideL = new THREE.DirectionalLight(0x8fb0ff, 0); sideL.position.set(1, 0.15, 0.35); scene.add(sideL);
+      let heroK = 0;
 
       // stage = where the device is on screen (position + size); spinner = how it is turned
       const stage = new THREE.Group(); scene.add(stage);
@@ -116,6 +124,8 @@ function DeviceTour(){
         const byName = {};
         model.traverse(o => { if (o.isMesh) byName[o.name] = o; });
         const bodyMat = byName.Verigate_Body.material;
+        // night black (Osama, 24.11.2026): a deep blue-black, a soft satin sheen, few reflections
+        bodyMat.color.set(0x020203); bodyMat.roughness = 0.55; bodyMat.metalness = 0.1; bodyMat.envMapIntensity = 0.35;
         byName.Verigate_Body.visible = false;      // replaced by a tray + a front panel that can come apart
 
         const mk = (parent, w, h, d, mat, x, y, z) => {
@@ -204,11 +214,14 @@ function DeviceTour(){
           parts[k].off = new THREE.Vector3().fromArray(TOUR_PARTS[k].off);
         });
         model.traverse(o => { if (o.isMesh && o.material && 'envMapIntensity' in o.material && o.material !== byName.LCD_Screen_Plane.material) o.material.envMapIntensity = 0.85; });
+        bodyMat.envMapIntensity = 0.35;   // night black: keep the case's reflections low
         model.userData.z0 = model.position.z;
         floor.position.y = model.position.y - 0.046 * fit - 0.0003;   // flush with the bottom of the case
         modelAt = performance.now();
         spinner.add(model);
-        first = true;
+        // compile the shaders without freezing the page, then show the device
+        const ready = () => { if (!alive) return; modelReady = true; first = true; };
+        if (renderer.compileAsync) renderer.compileAsync(scene, camera).then(ready, ready); else ready();
       }, undefined, (err) => console.error('GLB load error:', err));
 
       // ----- the phoenix: loaded once the visitor scrolls past the hero, then it flies
@@ -277,14 +290,15 @@ function DeviceTour(){
       const onResize = () => {
         vw = innerWidth; vh = innerHeight;
         camera.aspect = vw / vh; camera.updateProjectionMatrix();
-        renderer.setSize(vw, vh);
+        renderer.setPixelRatio(dpr()); renderer.setSize(vw, vh);
       };
       on(window, 'resize', onResize);
 
+      let shownOnce = false, modelReady = false, idleFrame = false;
       const animate = (t) => {
         if (!alive) return;
         raf = requestAnimationFrame(animate);
-        if (document.hidden || !model) return;
+        if (document.hidden || !model || !modelReady) return;
         const dt = lastT ? Math.min(0.05, (t - lastT) / 1000) : 0.016; lastT = t;
 
         const st = window.__vgTarget;
@@ -292,7 +306,8 @@ function DeviceTour(){
         if (tg && tg.soon){ if (!birdLoading) loadBird(); tg = null; }
         const mode = tg ? (tg === st ? 'story' : 'contact') : 'none';
         // fade in and out; a device that appears from nothing starts where it should be
-        cur.vis += ((tg ? 1 : 0) - cur.vis) * (reduce ? 1 : 1 - Math.exp(-dt * 8));
+        cur.vis += ((tg ? 1 : 0) - cur.vis) * (reduce || !shownOnce ? 1 : 1 - Math.exp(-dt * 12));
+        if (tg) shownOnce = true;   // the first time the device is wanted it is simply there, no fade-in
         if (mode !== lastMode){ if (lastMode === 'none' || lastMode === '') first = true; lastMode = mode; }
         mount.style.opacity = cur.vis.toFixed(3);
         if (!tg){
@@ -315,14 +330,15 @@ function DeviceTour(){
           ts *= apart + (1 - apart) * tourWin(bp, 0.74, 0.9);
           tyaw -= 0.55 * (1 - tourWin(bp, 0.6, 0.95));     // turned to the side while it is apart
         }
-        if (tg.spin && !reduce){ spin += dt; tyaw += Math.sin(spin * 0.45) * 0.42; }    // a slow sway that keeps the screen facing you
+        if (tg.spin && !reduce){ spin += dt; tyaw += Math.sin(spin * 0.45) * (tg.sway != null ? tg.sway : 0.42); }    // a slow sway that keeps the screen facing you
         tyaw = tyaw + 2 * Math.PI * Math.round((cur.yaw - tyaw) / (2 * Math.PI));
 
         // the target already follows the scroll smoothly, so this only takes the edge off
-        const k = (first || reduce) ? 1 : 1 - Math.exp(-dt * 10);
-        const kr = (first || reduce) ? 1 : 1 - Math.exp(-dt * 6);
+        const k = (first || reduce) ? 1 : 1 - Math.exp(-dt * 18);   // follows the scroll closely (was 10: felt laggy)
+        const kr = (first || reduce) ? 1 : 1 - Math.exp(-dt * 9);
         cur.x += (tx - cur.x) * k; cur.y += (ty - cur.y) * k; cur.s += (ts - cur.s) * k;
         cur.yaw += (tyaw - cur.yaw) * kr; cur.pitch += (tpitch - cur.pitch) * kr;
+        cur.roll = (cur.roll || 0) + ((tg.roll || 0) - (cur.roll || 0)) * kr;   // lean (hero only)
         cur.floor += ((tg.floor || 0) - cur.floor) * kr;
 
         // explode / assemble: each part follows its own window on the build progress
@@ -338,6 +354,8 @@ function DeviceTour(){
         wires.forEach(m => m.geometry.setDrawRange(0, Math.floor(m.geometry.index.count * wireT / 3) * 3));
         cur.shift += ((spread / 6) * 0.012 - cur.shift) * k;
         work.intensity = 2.4 * Math.min(1, spread / 3);
+        heroK += ((tg.key === 'product' ? 1 : 0) - heroK) * (first ? 1 : kr);
+        hazeL.intensity = 2.4 * heroK; fill.intensity = 0.35 + 0.6 * heroK; sideL.intensity = 6 * heroK;
 
         // power: the story decides, the switch overrides until the next chapter
         let wantOn = tg.power !== 0;
@@ -350,8 +368,8 @@ function DeviceTour(){
 
         stage.position.set(cur.x, cur.y, 0);
         stage.scale.setScalar(cur.s);
-        spinner.rotation.set(cur.pitch, cur.yaw, 0);
-        spinner.position.y = reduce ? 0 : Math.sin(t * 0.0009) * 0.0025;
+        spinner.rotation.set(cur.pitch, cur.yaw, cur.roll);
+        spinner.position.y = 0;   // no idle bob: the device stands still (Osama, 24.11.2026)
         model.position.z = model.userData.z0 - cur.shift;
         floorMat.opacity = cur.floor; floor.visible = cur.floor > 0.02;
         lamp.intensity = 4 + 8 * cur.floor;
@@ -383,7 +401,12 @@ function DeviceTour(){
           }
         }
 
+        // while the page is still, the only motion is the slow sway and the LCD beam: 30 fps is enough
+        idleFrame = !idleFrame;
+        if (!first && t - lastScrollAt > 500 && cur.vis > 0.99 && idleFrame && !(bird && bird.visible)) return;
+        renderer.shadowMap.autoUpdate = cur.floor > 0.02;   // skip the shadow pass while no floor shows
         renderer.render(scene, camera);
+        if (!window.__vgDeviceShown){ window.__vgDeviceShown = true; performance.mark('vg-render1'); window.dispatchEvent(new Event('vg-device-shown')); }
         first = false;
 
         // the power button rides on the 3D switch while the switch faces the viewer

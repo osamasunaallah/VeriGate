@@ -149,41 +149,37 @@ function Process(){
         .video-track-fill{ position:absolute; left:0; top:0; bottom:0; border-radius:3px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); pointer-events:none; }
         .rs-mark{ position:absolute; top:-3px; width:2px; height:12px; margin-left:-1px; background:rgba(255,255,255,.55); border-radius:1px; pointer-events:none; }
         .video-bar .time{ flex:none; color: var(--accent-2); }
+        /* 24.11.2026: the four steps are a timeline under the video, not four cards.
+           One hairline runs across; the active step's part of it lights up blue. */
         .step{ cursor:pointer; }
-        .steps{ list-style:none; padding:0; margin:0 auto; max-width: 118vh; display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; }
+        .steps{ list-style:none; padding:0; margin:0 auto; max-width: 118vh; display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 0 28px; }
         .step{
-          position: relative; overflow: hidden;
-          display: flex; flex-direction: column; gap: 10px;
-          padding: 22px 22px 24px;
-          border-radius: var(--r-lg);
-          border: 1px solid var(--line);
-          background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)), var(--surface);
-          box-shadow: var(--shadow-sm);
-          transition: transform .45s var(--easing-out), border-color .35s var(--easing), box-shadow .45s var(--easing), background .45s var(--easing);
+          position: relative;
+          display: flex; flex-direction: column; gap: 8px;
+          padding: 22px 0 6px;
+          border-top: 1px solid var(--line-2);
+          transition: opacity .35s var(--easing);
+          opacity: .6;
         }
         .step::before{
-          content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px;
-          background: linear-gradient(90deg, transparent, var(--accent), transparent);
-          transform: scaleX(0); transition: transform .6s var(--easing-out);
+          content: ""; position: absolute; left: 0; right: 0; top: -1px; height: 2px;
+          background: var(--pop);
+          transform: scaleX(0); transform-origin: left; transition: transform .6s var(--easing-out);
         }
-        @media (hover:hover) and (pointer:fine){.step:hover{ transform: translateY(-4px); border-color: var(--line-2); box-shadow: var(--shadow-md); }}
+        .step.is-active{ opacity: 1; }
         .step.is-active::before{ transform: scaleX(1); }
-@media (hover:hover) and (pointer:fine){.step:hover::before{ transform: scaleX(1); }}
-        .step.is-active{ border-color: var(--line-3); background: linear-gradient(180deg, rgba(124,138,255,.10), rgba(124,138,255,.02)), var(--surface); }
-        .step-num{
-          font-family: var(--font-display); font-size: 34px; line-height: 1; letter-spacing: -0.02em;
-          color: transparent; -webkit-text-stroke: 1.2px rgba(124,138,255,.5);
-          transition: -webkit-text-stroke-color .35s var(--easing);
-        }
-        .step.is-active .step-num{ -webkit-text-stroke-color: var(--accent-2); }
-@media (hover:hover) and (pointer:fine){.step:hover .step-num{ -webkit-text-stroke-color: var(--accent-2); }}
+        @media (hover:hover) and (pointer:fine){.step:hover{ opacity: 1; }}
+        .step-num{ font: 500 13px/1 var(--font-mono); letter-spacing: .08em; color: var(--muted); transition: color .35s var(--easing); }
+        .step.is-active .step-num{ color: var(--pop-ink); }
         .step-arrow{ display: none; }
-        .step h3{ margin: 0; font-size: 18px; letter-spacing: -0.01em; font-family: var(--font-display); color: var(--text); }
-        .step p{ margin: 0; color: var(--muted); font-size: 14.5px; line-height: 1.55; }
-        @media (max-width: 1000px){ .steps{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+        .step h3{ margin: 2px 0 0; font-size: 20px; letter-spacing: -0.015em; font-family: var(--font-display); color: var(--text); }
+        .step p{ margin: 0; color: var(--muted); font-size: 15px; line-height: 1.55; }
+        @media (max-width: 1000px){ .steps{ grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px 28px; } }
         @media (max-width: 760px){
-          .steps{ grid-template-columns: 1fr; }
-          .step{ padding: 18px 20px; }
+          .steps{ grid-template-columns: 1fr; gap: 0; }
+          .step{ padding: 18px 0 18px 28px; border-top: 0; border-left: 1px solid var(--line-2); }
+          .step::before{ left: -1px; right: auto; top: 0; bottom: 0; width: 2px; height: auto; transform: scaleY(0); transform-origin: top; }
+          .step.is-active::before{ transform: scaleY(1); }
           .video-frame{ aspect-ratio: 4 / 3; }
           .video-bar{ gap:10px; padding:10px 12px; }
         }

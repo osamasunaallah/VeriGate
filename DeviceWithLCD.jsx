@@ -5,8 +5,13 @@
 /* drawLCD — pixel-perfect 2D rendering of the LCD interface.
    Reads chapter data and time, paints to the offscreen canvas that
    becomes the CanvasTexture on the LCD_Screen_Plane mesh. */
-function drawLCD(ctx, canvas, chap, time){
-  const w = canvas.width, h = canvas.height;
+/* 24.11.2026: the static layers (background, grid, glass, glowing text, vignette) are drawn once
+   per text/state/cursor into a cached canvas; each frame then copies it and adds the moving beam.
+   The glow (shadowBlur) on big text was the expensive part, redrawn 20 times a second. */
+const __lcdCache = new Map();
+// redraw the cache once the LCD font has loaded (a cached fallback font would stick)
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => __lcdCache.clear());
+function drawLCDStatic(ctx, w, h, chap, cursorOn){
   const isApproved = chap && chap.state === 'approved';
   const isWarn = chap && chap.state === 'warn';
 
@@ -46,7 +51,6 @@ function drawLCD(ctx, canvas, chap, time){
   // ---- text lines ----
   const line1 = (chap && chap.lcdLine1) || 'VERIGATE';
   const line2 = (chap && chap.lcdLine2) || 'READY · SCAN';
-  const cursorOn = Math.floor(time / 500) % 2 === 0;
   const cursor = cursorOn ? '_' : ' ';
 
   ctx.textAlign = 'center';
@@ -65,6 +69,27 @@ function drawLCD(ctx, canvas, chap, time){
   ctx.fillStyle = isWarn ? '#FFC9C0' : isApproved ? '#C8F5DA' : '#B5CDFF';
   ctx.fillText(line2, w / 2, h * 0.74);
 
+  // ---- subtle inner vignette to give depth ----
+  const vig = ctx.createRadialGradient(w * 0.5, h * 0.5, w * 0.30, w * 0.5, h * 0.5, w * 0.55);
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, 'rgba(0,0,0,0.30)');
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, w, h);
+}
+function drawLCD(ctx, canvas, chap, time){
+  const w = canvas.width, h = canvas.height;
+  const isApproved = chap && chap.state === 'approved';
+  const cursorOn = Math.floor(time / 500) % 2 === 0;
+  const key = w + 'x' + h + '|' + ((chap && chap.lcdLine1) || '') + '|' + ((chap && chap.lcdLine2) || '') + '|' + ((chap && chap.state) || '') + '|' + (cursorOn ? 1 : 0);
+  let c = __lcdCache.get(key);
+  if (!c){
+    c = document.createElement('canvas'); c.width = w; c.height = h;
+    drawLCDStatic(c.getContext('2d'), w, h, chap, cursorOn);
+    if (__lcdCache.size > 40) __lcdCache.clear();
+    __lcdCache.set(key, c);
+  }
+  ctx.shadowBlur = 0;
+  ctx.drawImage(c, 0, 0);
   // ---- animated scan beam ----
   const period = 2800;
   const beamH = 70;
@@ -77,12 +102,6 @@ function drawLCD(ctx, canvas, chap, time){
   ctx.fillStyle = beam;
   ctx.fillRect(0, beamY, w, beamH);
 
-  // ---- subtle inner vignette to give depth ----
-  const vig = ctx.createRadialGradient(w * 0.5, h * 0.5, w * 0.30, w * 0.5, h * 0.5, w * 0.55);
-  vig.addColorStop(0, 'rgba(0,0,0,0)');
-  vig.addColorStop(1, 'rgba(0,0,0,0.30)');
-  ctx.fillStyle = vig;
-  ctx.fillRect(0, 0, w, h);
 }
 
 window.drawLCD = drawLCD;   // the process animation paints its LCD with this too

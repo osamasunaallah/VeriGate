@@ -57,31 +57,24 @@ function Nav(){
         LinkedIn
       </a>
       <style>{`
+        /* 24.11.2026: a full-width bar with one hairline under it (was a floating pill) */
         .kit-nav{
-          position: sticky; top: 14px; z-index: 50;
-          margin: 14px auto 0;
-          width: min(1280px, calc(100% - 32px));
-          display:flex; align-items:center; justify-content:space-between;
+          --gut: max(28px, calc((100vw - 1240px) / 2));
+          position: sticky; top: 0; z-index: 50;
+          margin: 0; width: 100%;
+          display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
           gap: 24px;
-          padding: 10px 14px 10px 18px;
-          border:1px solid var(--line);
-          background: rgba(20,23,43,.55);
-          backdrop-filter: blur(20px) saturate(140%);
-          -webkit-backdrop-filter: blur(20px) saturate(140%);
-          border-radius: 999px;
-          transition:
-            padding .45s var(--easing-out),
-            background .45s var(--easing-out),
-            border-color .45s var(--easing-out),
-            box-shadow .45s var(--easing-out);
-          box-shadow: 0 10px 30px rgba(0,0,0,.25);
+          padding: calc(16px + env(safe-area-inset-top, 0px)) calc(var(--gut) + env(safe-area-inset-right, 0px)) 16px calc(var(--gut) + env(safe-area-inset-left, 0px));
+          border: 0; border-bottom: 1px solid rgba(255,255,255,.07);
+          border-radius: 0;
+          background: transparent;
+          transition: padding .35s var(--easing-out), background .35s var(--easing-out), border-color .35s var(--easing-out);
         }
         .kit-nav.scrolled{
-          padding: 6px 10px 6px 14px;
-          background: rgba(20,23,43,.78);
-          border-color: var(--line-2);
-          box-shadow: 0 18px 40px rgba(0,0,0,.4);
+          padding-top: calc(10px + env(safe-area-inset-top, 0px)); padding-bottom: 10px;
+          border-bottom-color: rgba(255,255,255,.1);
         }
+        .kit-nav .nav-cta{ justify-self: end; }
         .brand{
           display:flex; align-items:center; gap:10px;
           font-family: var(--font-display); font-weight:600; min-width:0;
@@ -92,7 +85,7 @@ function Nav(){
         .brand:active .brand-mark{ transform: rotate(-8deg) scale(.95); }
         .brand-mark{
           display: block;
-          width: 32px; height: 32px;
+          width: 40px; height: 40px;
           object-fit: contain;
           /* Phoenix-tinted glow — warm gold inner, cool violet outer.
              The PNG is now transparent so the glow reads as light
@@ -109,14 +102,14 @@ function Nav(){
             drop-shadow(0 2px 10px rgba(124,138,255,.30));
         }}
         .brand-text{
-          font-size: 15px; letter-spacing:.005em;
+          font-size: 19px; letter-spacing: -.01em;
           color: var(--text);
         }
-        .nav-links{ display:flex; gap:2px; }
+        .nav-links{ display:flex; gap: clamp(8px, 2vw, 32px); }
         .nav-links a{
           position: relative;
-          padding:9px 16px; border-radius:999px; font-size:14px;
-          color: var(--muted);
+          padding: 10px 4px; font-size: 15px;
+          color: var(--text-2);
           transition: color .25s var(--easing), background .25s var(--easing);
         }
         .nav-links a::after{
@@ -129,15 +122,15 @@ function Nav(){
           background: linear-gradient(90deg, transparent, var(--accent), transparent);
           transition: transform .35s var(--easing-out), box-shadow .35s var(--easing-out);
         }
-        @media (hover:hover) and (pointer:fine){.nav-links a:hover{ color: var(--text); background: rgba(255,255,255,.05); }}
+        @media (hover:hover) and (pointer:fine){.nav-links a:hover{ color: var(--text); }}
         @media (hover:hover) and (pointer:fine){.nav-links a:hover::after{
           transform: translateX(-50%) scaleX(1);
           box-shadow: 0 0 10px rgba(124,138,255,.55);
         }}
         .nav-cta{
           display: inline-flex; align-items: center; gap: 8px;
-          padding:9px 16px 9px 14px;
-          border-radius:999px; font-size:14px;
+          padding: 12px 20px 12px 18px;
+          border-radius:999px; font-size:15px;
           background: linear-gradient(180deg, #B3BFFF, #6E7CF5);
           color:#06091A; font-weight:600;
           box-shadow: var(--glow-accent), inset 0 1px 0 rgba(255,255,255,.4);
@@ -150,10 +143,12 @@ function Nav(){
         }}
         @media (max-width: 980px){
           .nav-links{ display:none; }
-          .kit-nav{ width: min(720px, calc(100% - 20px)); padding: 8px 10px 8px 14px; }
+          .kit-nav{ grid-template-columns: 1fr auto; --gut: 20px; }
         }
         @media (max-width: 480px){
-          .nav-cta{ padding: 8px 12px; gap: 6px; }
+          .nav-cta{ padding: 10px 14px; gap: 6px; font-size: 14px; }
+          .brand-mark{ width: 34px; height: 34px; }
+          .brand-text{ font-size: 17px; }
         }
       `}</style>
     </nav>

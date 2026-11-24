@@ -3,9 +3,9 @@
 
 /* ---- DeviceWithLCD ---- */
 (function(){
-function drawLCD(ctx, canvas, chap, time) {
-  const w = canvas.width,
-    h = canvas.height;
+const __lcdCache = new Map();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => __lcdCache.clear());
+function drawLCDStatic(ctx, w, h, chap, cursorOn) {
   const isApproved = chap && chap.state === 'approved';
   const isWarn = chap && chap.state === 'warn';
   const bg = ctx.createRadialGradient(w * 0.5, h * 0.35, 50, w * 0.5, h * 0.35, w * 0.7);
@@ -37,7 +37,6 @@ function drawLCD(ctx, canvas, chap, time) {
   ctx.fillRect(0, 0, w, h * 0.40);
   const line1 = chap && chap.lcdLine1 || 'VERIGATE';
   const line2 = chap && chap.lcdLine2 || 'READY · SCAN';
-  const cursorOn = Math.floor(time / 500) % 2 === 0;
   const cursor = cursorOn ? '_' : ' ';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -50,6 +49,29 @@ function drawLCD(ctx, canvas, chap, time) {
   ctx.shadowBlur = 18;
   ctx.fillStyle = isWarn ? '#FFC9C0' : isApproved ? '#C8F5DA' : '#B5CDFF';
   ctx.fillText(line2, w / 2, h * 0.74);
+  const vig = ctx.createRadialGradient(w * 0.5, h * 0.5, w * 0.30, w * 0.5, h * 0.5, w * 0.55);
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, 'rgba(0,0,0,0.30)');
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, w, h);
+}
+function drawLCD(ctx, canvas, chap, time) {
+  const w = canvas.width,
+    h = canvas.height;
+  const isApproved = chap && chap.state === 'approved';
+  const cursorOn = Math.floor(time / 500) % 2 === 0;
+  const key = w + 'x' + h + '|' + (chap && chap.lcdLine1 || '') + '|' + (chap && chap.lcdLine2 || '') + '|' + (chap && chap.state || '') + '|' + (cursorOn ? 1 : 0);
+  let c = __lcdCache.get(key);
+  if (!c) {
+    c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    drawLCDStatic(c.getContext('2d'), w, h, chap, cursorOn);
+    if (__lcdCache.size > 40) __lcdCache.clear();
+    __lcdCache.set(key, c);
+  }
+  ctx.shadowBlur = 0;
+  ctx.drawImage(c, 0, 0);
   const period = 2800;
   const beamH = 70;
   const beamY = time % period / period * (h + beamH) - beamH;
@@ -60,11 +82,6 @@ function drawLCD(ctx, canvas, chap, time) {
   beam.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = beam;
   ctx.fillRect(0, beamY, w, beamH);
-  const vig = ctx.createRadialGradient(w * 0.5, h * 0.5, w * 0.30, w * 0.5, h * 0.5, w * 0.55);
-  vig.addColorStop(0, 'rgba(0,0,0,0)');
-  vig.addColorStop(1, 'rgba(0,0,0,0.30)');
-  ctx.fillStyle = vig;
-  ctx.fillRect(0, 0, w, h);
 }
 window.drawLCD = drawLCD;
 })();
@@ -140,7 +157,8 @@ function DeviceTour() {
         alpha: true,
         powerPreference: 'high-performance'
       });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+      const dpr = () => Math.min(window.devicePixelRatio || 1, innerWidth * innerHeight > 900000 ? 1 : 1.25);
+      renderer.setPixelRatio(dpr());
       renderer.setSize(vw, vh);
       if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -169,6 +187,13 @@ function DeviceTour() {
       const topL = new THREE.DirectionalLight(0xffffff, 1.5);
       topL.position.set(0.4, 0.7, -0.6);
       scene.add(topL);
+      const hazeL = new THREE.DirectionalLight(0xd4e0ff, 0);
+      hazeL.position.set(0.1, -0.7, 0.55);
+      scene.add(hazeL);
+      const sideL = new THREE.DirectionalLight(0x8fb0ff, 0);
+      sideL.position.set(1, 0.15, 0.35);
+      scene.add(sideL);
+      let heroK = 0;
       const stage = new THREE.Group();
       scene.add(stage);
       const spinner = new THREE.Group();
@@ -238,6 +263,10 @@ function DeviceTour() {
           if (o.isMesh) byName[o.name] = o;
         });
         const bodyMat = byName.Verigate_Body.material;
+        bodyMat.color.set(0x020203);
+        bodyMat.roughness = 0.55;
+        bodyMat.metalness = 0.1;
+        bodyMat.envMapIntensity = 0.35;
         byName.Verigate_Body.visible = false;
         const mk = (parent, w, h, d, mat, x, y, z) => {
           const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
@@ -338,11 +367,17 @@ function DeviceTour() {
         model.traverse(o => {
           if (o.isMesh && o.material && 'envMapIntensity' in o.material && o.material !== byName.LCD_Screen_Plane.material) o.material.envMapIntensity = 0.85;
         });
+        bodyMat.envMapIntensity = 0.35;
         model.userData.z0 = model.position.z;
         floor.position.y = model.position.y - 0.046 * fit - 0.0003;
         modelAt = performance.now();
         spinner.add(model);
-        first = true;
+        const ready = () => {
+          if (!alive) return;
+          modelReady = true;
+          first = true;
+        };
+        if (renderer.compileAsync) renderer.compileAsync(scene, camera).then(ready, ready);else ready();
       }, undefined, err => console.error('GLB load error:', err));
       let bird = null,
         birdMixer = null,
@@ -468,13 +503,17 @@ function DeviceTour() {
         vh = innerHeight;
         camera.aspect = vw / vh;
         camera.updateProjectionMatrix();
+        renderer.setPixelRatio(dpr());
         renderer.setSize(vw, vh);
       };
       on(window, 'resize', onResize);
+      let shownOnce = false,
+        modelReady = false,
+        idleFrame = false;
       const animate = t => {
         if (!alive) return;
         raf = requestAnimationFrame(animate);
-        if (document.hidden || !model) return;
+        if (document.hidden || !model || !modelReady) return;
         const dt = lastT ? Math.min(0.05, (t - lastT) / 1000) : 0.016;
         lastT = t;
         const st = window.__vgTarget;
@@ -484,7 +523,8 @@ function DeviceTour() {
           tg = null;
         }
         const mode = tg ? tg === st ? 'story' : 'contact' : 'none';
-        cur.vis += ((tg ? 1 : 0) - cur.vis) * (reduce ? 1 : 1 - Math.exp(-dt * 8));
+        cur.vis += ((tg ? 1 : 0) - cur.vis) * (reduce || !shownOnce ? 1 : 1 - Math.exp(-dt * 12));
+        if (tg) shownOnce = true;
         if (mode !== lastMode) {
           if (lastMode === 'none' || lastMode === '') first = true;
           lastMode = mode;
@@ -519,16 +559,17 @@ function DeviceTour() {
         }
         if (tg.spin && !reduce) {
           spin += dt;
-          tyaw += Math.sin(spin * 0.45) * 0.42;
+          tyaw += Math.sin(spin * 0.45) * (tg.sway != null ? tg.sway : 0.42);
         }
         tyaw = tyaw + 2 * Math.PI * Math.round((cur.yaw - tyaw) / (2 * Math.PI));
-        const k = first || reduce ? 1 : 1 - Math.exp(-dt * 10);
-        const kr = first || reduce ? 1 : 1 - Math.exp(-dt * 6);
+        const k = first || reduce ? 1 : 1 - Math.exp(-dt * 18);
+        const kr = first || reduce ? 1 : 1 - Math.exp(-dt * 9);
         cur.x += (tx - cur.x) * k;
         cur.y += (ty - cur.y) * k;
         cur.s += (ts - cur.s) * k;
         cur.yaw += (tyaw - cur.yaw) * kr;
         cur.pitch += (tpitch - cur.pitch) * kr;
+        cur.roll = (cur.roll || 0) + ((tg.roll || 0) - (cur.roll || 0)) * kr;
         cur.floor += ((tg.floor || 0) - cur.floor) * kr;
         let spread = 0;
         Object.keys(parts).forEach(name => {
@@ -543,6 +584,10 @@ function DeviceTour() {
         wires.forEach(m => m.geometry.setDrawRange(0, Math.floor(m.geometry.index.count * wireT / 3) * 3));
         cur.shift += (spread / 6 * 0.012 - cur.shift) * k;
         work.intensity = 2.4 * Math.min(1, spread / 3);
+        heroK += ((tg.key === 'product' ? 1 : 0) - heroK) * (first ? 1 : kr);
+        hazeL.intensity = 2.4 * heroK;
+        fill.intensity = 0.35 + 0.6 * heroK;
+        sideL.intensity = 6 * heroK;
         let wantOn = tg.power !== 0;
         if (isBuild) wantOn = bp >= TOUR_POWER_AT;
         if (userPower !== null) wantOn = !!userPower;
@@ -552,8 +597,8 @@ function DeviceTour() {
         if (rocker) rocker.rotation.y += ((powerOn ? -0.32 : 0.32) - rocker.rotation.y) * (reduce ? 1 : 1 - Math.exp(-dt * 16));
         stage.position.set(cur.x, cur.y, 0);
         stage.scale.setScalar(cur.s);
-        spinner.rotation.set(cur.pitch, cur.yaw, 0);
-        spinner.position.y = reduce ? 0 : Math.sin(t * 0.0009) * 0.0025;
+        spinner.rotation.set(cur.pitch, cur.yaw, cur.roll);
+        spinner.position.y = 0;
         model.position.z = model.userData.z0 - cur.shift;
         floorMat.opacity = cur.floor;
         floor.visible = cur.floor > 0.02;
@@ -587,7 +632,15 @@ function DeviceTour() {
             if (birdMixer) birdMixer.update(dt);
           }
         }
+        idleFrame = !idleFrame;
+        if (!first && t - lastScrollAt > 500 && cur.vis > 0.99 && idleFrame && !(bird && bird.visible)) return;
+        renderer.shadowMap.autoUpdate = cur.floor > 0.02;
         renderer.render(scene, camera);
+        if (!window.__vgDeviceShown) {
+          window.__vgDeviceShown = true;
+          performance.mark('vg-render1');
+          window.dispatchEvent(new Event('vg-device-shown'));
+        }
         first = false;
         if (switchAnchor && btn) {
           switchAnchor.getWorldPosition(v3);
@@ -1044,31 +1097,24 @@ function Nav() {
   }, React.createElement("path", {
     d: "M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14zM8.34 18.34V9.67H5.67v8.67h2.67zM7 8.5a1.55 1.55 0 1 0 0-3.1 1.55 1.55 0 0 0 0 3.1zm11.34 9.84v-4.74c0-2.54-1.36-3.72-3.17-3.72-1.46 0-2.11.8-2.48 1.36V9.67h-2.67c.04.75 0 8.67 0 8.67h2.67v-4.84c0-.24.02-.48.09-.66.19-.48.63-.98 1.37-.98.97 0 1.36.74 1.36 1.82v4.66h2.83z"
   })), "LinkedIn"), React.createElement("style", null, `
+        /* 24.11.2026: a full-width bar with one hairline under it (was a floating pill) */
         .kit-nav{
-          position: sticky; top: 14px; z-index: 50;
-          margin: 14px auto 0;
-          width: min(1280px, calc(100% - 32px));
-          display:flex; align-items:center; justify-content:space-between;
+          --gut: max(28px, calc((100vw - 1240px) / 2));
+          position: sticky; top: 0; z-index: 50;
+          margin: 0; width: 100%;
+          display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
           gap: 24px;
-          padding: 10px 14px 10px 18px;
-          border:1px solid var(--line);
-          background: rgba(20,23,43,.55);
-          backdrop-filter: blur(20px) saturate(140%);
-          -webkit-backdrop-filter: blur(20px) saturate(140%);
-          border-radius: 999px;
-          transition:
-            padding .45s var(--easing-out),
-            background .45s var(--easing-out),
-            border-color .45s var(--easing-out),
-            box-shadow .45s var(--easing-out);
-          box-shadow: 0 10px 30px rgba(0,0,0,.25);
+          padding: calc(16px + env(safe-area-inset-top, 0px)) calc(var(--gut) + env(safe-area-inset-right, 0px)) 16px calc(var(--gut) + env(safe-area-inset-left, 0px));
+          border: 0; border-bottom: 1px solid rgba(255,255,255,.07);
+          border-radius: 0;
+          background: transparent;
+          transition: padding .35s var(--easing-out), background .35s var(--easing-out), border-color .35s var(--easing-out);
         }
         .kit-nav.scrolled{
-          padding: 6px 10px 6px 14px;
-          background: rgba(20,23,43,.78);
-          border-color: var(--line-2);
-          box-shadow: 0 18px 40px rgba(0,0,0,.4);
+          padding-top: calc(10px + env(safe-area-inset-top, 0px)); padding-bottom: 10px;
+          border-bottom-color: rgba(255,255,255,.1);
         }
+        .kit-nav .nav-cta{ justify-self: end; }
         .brand{
           display:flex; align-items:center; gap:10px;
           font-family: var(--font-display); font-weight:600; min-width:0;
@@ -1079,7 +1125,7 @@ function Nav() {
         .brand:active .brand-mark{ transform: rotate(-8deg) scale(.95); }
         .brand-mark{
           display: block;
-          width: 32px; height: 32px;
+          width: 40px; height: 40px;
           object-fit: contain;
           /* Phoenix-tinted glow — warm gold inner, cool violet outer.
              The PNG is now transparent so the glow reads as light
@@ -1096,14 +1142,14 @@ function Nav() {
             drop-shadow(0 2px 10px rgba(124,138,255,.30));
         }}
         .brand-text{
-          font-size: 15px; letter-spacing:.005em;
+          font-size: 19px; letter-spacing: -.01em;
           color: var(--text);
         }
-        .nav-links{ display:flex; gap:2px; }
+        .nav-links{ display:flex; gap: clamp(8px, 2vw, 32px); }
         .nav-links a{
           position: relative;
-          padding:9px 16px; border-radius:999px; font-size:14px;
-          color: var(--muted);
+          padding: 10px 4px; font-size: 15px;
+          color: var(--text-2);
           transition: color .25s var(--easing), background .25s var(--easing);
         }
         .nav-links a::after{
@@ -1116,15 +1162,15 @@ function Nav() {
           background: linear-gradient(90deg, transparent, var(--accent), transparent);
           transition: transform .35s var(--easing-out), box-shadow .35s var(--easing-out);
         }
-        @media (hover:hover) and (pointer:fine){.nav-links a:hover{ color: var(--text); background: rgba(255,255,255,.05); }}
+        @media (hover:hover) and (pointer:fine){.nav-links a:hover{ color: var(--text); }}
         @media (hover:hover) and (pointer:fine){.nav-links a:hover::after{
           transform: translateX(-50%) scaleX(1);
           box-shadow: 0 0 10px rgba(124,138,255,.55);
         }}
         .nav-cta{
           display: inline-flex; align-items: center; gap: 8px;
-          padding:9px 16px 9px 14px;
-          border-radius:999px; font-size:14px;
+          padding: 12px 20px 12px 18px;
+          border-radius:999px; font-size:15px;
           background: linear-gradient(180deg, #B3BFFF, #6E7CF5);
           color:#06091A; font-weight:600;
           box-shadow: var(--glow-accent), inset 0 1px 0 rgba(255,255,255,.4);
@@ -1137,10 +1183,12 @@ function Nav() {
         }}
         @media (max-width: 980px){
           .nav-links{ display:none; }
-          .kit-nav{ width: min(720px, calc(100% - 20px)); padding: 8px 10px 8px 14px; }
+          .kit-nav{ grid-template-columns: 1fr auto; --gut: 20px; }
         }
         @media (max-width: 480px){
-          .nav-cta{ padding: 8px 12px; gap: 6px; }
+          .nav-cta{ padding: 10px 14px; gap: 6px; font-size: 14px; }
+          .brand-mark{ width: 34px; height: 34px; }
+          .brand-text{ font-size: 17px; }
         }
       `));
 }
@@ -1153,12 +1201,23 @@ const STORY = [{
   id: 'product',
   len: 0.6,
   dev: 'r',
-  yaw: -0.5,
-  pitch: 0.2,
-  size: 0.7,
+  yaw: -0.62,
+  pitch: 0,
+  roll: 0,
   spin: 1,
-  floor: 1,
-  cy: 0.53
+  sway: 0.035,
+  floor: 0,
+  hero: 1,
+  size: 1.15,
+  cxw: 0.75,
+  maxw: 0.56,
+  show: 0.8,
+  mob: {
+    size: 0.95,
+    maxw: 1.38,
+    show: 0.86,
+    dh: 0.69
+  }
 }, {
   id: 'build',
   len: 1.5,
@@ -1245,13 +1304,17 @@ function storyEase(t) {
 function Story() {
   const ref = React.useRef(null);
   const panels = React.useRef([]);
+  const fog = React.useRef(null);
   const [buildStep, setBuildStep] = React.useState(0);
   const [howStep, setHowStep] = React.useState(0);
   React.useEffect(() => {
     let raf = 0,
       alive = true,
       lastB = -1,
-      lastH = -1;
+      lastH = -1,
+      heroO = '',
+      heroBg = null,
+      heroTextBottom = 0;
     const starts = [];
     STORY.reduce((a, c, i) => {
       starts[i] = a;
@@ -1263,9 +1326,12 @@ function Story() {
       el.style.marginTop = '0px';
       const top = el.getBoundingClientRect().top + window.scrollY;
       if (top > 0 && top < 200) el.style.marginTop = -top + 'px';
+      const hp = panels.current[0];
+      if (hp) heroTextBottom = hp.offsetTop + hp.offsetHeight;
     };
     tuck();
     window.addEventListener('resize', tuck);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(tuck);
     const frame = () => {
       if (!alive) return;
       raf = requestAnimationFrame(frame);
@@ -1277,14 +1343,37 @@ function Story() {
       const U = r.height / (STORY_RUN + 1);
       const pos = -r.top / U;
       const wide = vw >= 900;
-      const placeOf = c => wide ? {
-        cx: (c.dev === 'r' ? 0.7 : 0.3) * vw,
-        cy: (c.cy || 0.52) * U,
-        size: Math.min(c.size * U, 0.44 * vw)
-      } : {
-        cx: 0.5 * vw,
-        cy: 0.3 * U,
-        size: Math.min(c.size * 0.64 * U, 0.9 * vw)
+      const DH = 0.69;
+      const placeOf = c => {
+        if (c.hero) {
+          if (wide) {
+            const size = Math.min(c.size * U, c.maxw * vw),
+              h = size * DH;
+            return {
+              cx: c.cxw * vw,
+              cy: U - (c.show - 0.5) * h,
+              size
+            };
+          }
+          const size = Math.min(c.mob.size * U, c.mob.maxw * vw),
+            h = size * DH;
+          const hm = size * c.mob.dh;
+          return {
+            cx: 0.5 * vw,
+            cy: U - (c.mob.show - 0.5) * hm,
+            size,
+            top: U - c.mob.show * hm
+          };
+        }
+        return wide ? {
+          cx: (c.cxw || (c.dev === 'r' ? 0.7 : 0.3)) * vw,
+          cy: (c.cy || 0.52) * U,
+          size: Math.min(c.size * U, (c.maxw || 0.44) * vw)
+        } : {
+          cx: 0.5 * vw,
+          cy: 0.3 * U,
+          size: Math.min(c.size * 0.64 * U, 0.9 * vw)
+        };
       };
       let i = 0;
       for (let k = 0; k < STORY.length; k++) if (pos >= starts[k]) i = k;
@@ -1294,6 +1383,18 @@ function Story() {
         cfg = c,
         B = null,
         m = 0;
+      if (!wide && STORY[0].mob) {
+        const hp = panels.current[0],
+          h0 = placeOf(STORY[0]);
+        const b = Math.round(U - h0.top + 20) + 'px';
+        if (hp && hp.__b !== b) {
+          hp.__b = b;
+          hp.style.bottom = b;
+        }
+      } else if (panels.current[0] && panels.current[0].__b) {
+        panels.current[0].__b = '';
+        panels.current[0].style.bottom = '';
+      }
       const G = 0.2;
       if (u > c.len - G && i < STORY.length - 1) {
         B = STORY[i + 1];
@@ -1304,7 +1405,8 @@ function Story() {
       }
       let P = A,
         yaw = c.yaw,
-        pitch = c.pitch;
+        pitch = c.pitch,
+        roll = c.roll || 0;
       if (B) {
         const Bp = placeOf(B);
         P = {
@@ -1314,6 +1416,7 @@ function Story() {
         };
         yaw = c.yaw + (B.yaw - c.yaw) * m;
         pitch = c.pitch + (B.pitch - c.pitch) * m;
+        roll = (c.roll || 0) + ((B.roll || 0) - (c.roll || 0)) * m;
         if (m > 0.5) cfg = B;
       }
       const over = Math.max(0, pos - STORY_RUN) * U;
@@ -1343,7 +1446,9 @@ function Story() {
         size: P.size,
         yaw,
         pitch,
+        roll,
         spin: cfg.spin || 0,
+        sway: cfg.sway,
         floor: cfg.floor || 0,
         build: cfg.build ? bp : -1,
         lcd1: how ? how.lcd1 : cfg.lcd1,
@@ -1361,12 +1466,27 @@ function Story() {
         const v = Math.min(vin, vout);
         const y = (1 - vin) * 36 - (1 - vout) * 36;
         const o = v.toFixed(3);
+        if (k === 0 && heroO !== o) {
+          heroO = o;
+          const bg = heroBg || (heroBg = document.querySelector('.hero-bg'));
+          if (bg) {
+            bg.style.opacity = o;
+            bg.style.visibility = v > 0.001 ? 'visible' : 'hidden';
+          }
+          if (fog.current) {
+            fog.current.style.opacity = o;
+          }
+        }
         if (p.__o !== o) {
           p.__o = o;
           p.style.opacity = o;
           p.style.visibility = v > 0.001 ? 'visible' : 'hidden';
         }
-        p.style.transform = 'translate3d(0,' + y.toFixed(1) + 'px,0)';
+        const tf = 'translate3d(0,' + y.toFixed(1) + 'px,0)';
+        if (p.__tf !== tf) {
+          p.__tf = tf;
+          p.style.transform = tf;
+        }
       });
     };
     raf = requestAnimationFrame(frame);
@@ -1408,23 +1528,47 @@ function Story() {
   })), React.createElement("div", {
     className: "story-sticky"
   }, React.createElement("div", {
+    className: "st-fog",
+    ref: fog,
+    "aria-hidden": "true"
+  }), React.createElement("div", {
     className: side(STORY[0]) + ' st-hero',
     ref: P(0)
   }, React.createElement("h1", {
-    className: "st-h1"
-  }, "A receiving device,", React.createElement("br", null), React.createElement("em", null, "verified instantly.")), React.createElement("p", {
-    className: "st-lede"
-  }, "The driver taps a card. The shipment shows on the screen. The worker approves it."), React.createElement("div", {
+    className: "st-h1 st-brand"
+  }, "VeriGate"), React.createElement("p", {
+    className: "st-catch"
+  }, React.createElement("em", null, "Verified instantly.")), React.createElement("div", {
     className: "st-cta"
   }, React.createElement("a", {
     href: "https://www.linkedin.com/in/osamasunaallah/",
     target: "_blank",
     rel: "noopener noreferrer",
     className: "btn primary big"
-  }, "Connect on LinkedIn"), React.createElement("a", {
+  }, "Connect on LinkedIn", React.createElement("svg", {
+    viewBox: "0 0 24 24",
+    width: "18",
+    height: "18",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2.2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    "aria-hidden": "true"
+  }, React.createElement("path", {
+    d: "M7 17 17 7M8 7h9v9"
+  }))), React.createElement("a", {
     href: "#process",
     className: "btn ghost big"
-  }, "See it work"))), React.createElement("div", {
+  }, "See it work", React.createElement("svg", {
+    viewBox: "0 0 24 24",
+    width: "16",
+    height: "16",
+    fill: "currentColor",
+    "aria-hidden": "true"
+  }, React.createElement("path", {
+    d: "M8 5.5v13l10.5-6.5z"
+  }))))), React.createElement("div", {
     className: side(STORY[1]),
     ref: P(1)
   }, React.createElement("h2", {
@@ -2677,10 +2821,14 @@ function ReceivingScene({
         });
         try {
           renderer.compile(scene, camera);
+          renderer.render(scene, camera);
         } catch (e) {}
         hidden.forEach(o => {
           o.visible = false;
         });
+        try {
+          renderAt(Math.max(0, Math.min(RS_DUR, timeRef.current)));
+        } catch (e) {}
       };
       if (window.requestIdleCallback) requestIdleCallback(warmUp, {
         timeout: 4000
@@ -2704,10 +2852,29 @@ function ReceivingScene({
         if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
       };
     };
-    if (window.__threeReady) start();else window.addEventListener('threeready', start, {
-      once: true
-    });
+    let kicked = false,
+      kickT = 0;
+    const kick = () => {
+      if (kicked || !alive) return;
+      kicked = true;
+      const go = () => {
+        if (window.__threeReady) start();else window.addEventListener('threeready', start, {
+          once: true
+        });
+      };
+      if (window.requestIdleCallback) requestIdleCallback(go, {
+        timeout: 2500
+      });else setTimeout(go, 300);
+    };
+    if (window.__vgDeviceShown) kick();else {
+      window.addEventListener('vg-device-shown', kick, {
+        once: true
+      });
+      kickT = setTimeout(kick, 6000);
+    }
     return () => {
+      clearTimeout(kickT);
+      window.removeEventListener('vg-device-shown', kick);
       alive = false;
       cancelAnimationFrame(raf);
       if (ro) ro.disconnect();
@@ -2965,41 +3132,37 @@ function Process() {
         .video-track-fill{ position:absolute; left:0; top:0; bottom:0; border-radius:3px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); pointer-events:none; }
         .rs-mark{ position:absolute; top:-3px; width:2px; height:12px; margin-left:-1px; background:rgba(255,255,255,.55); border-radius:1px; pointer-events:none; }
         .video-bar .time{ flex:none; color: var(--accent-2); }
+        /* 24.11.2026: the four steps are a timeline under the video, not four cards.
+           One hairline runs across; the active step's part of it lights up blue. */
         .step{ cursor:pointer; }
-        .steps{ list-style:none; padding:0; margin:0 auto; max-width: 118vh; display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; }
+        .steps{ list-style:none; padding:0; margin:0 auto; max-width: 118vh; display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 0 28px; }
         .step{
-          position: relative; overflow: hidden;
-          display: flex; flex-direction: column; gap: 10px;
-          padding: 22px 22px 24px;
-          border-radius: var(--r-lg);
-          border: 1px solid var(--line);
-          background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)), var(--surface);
-          box-shadow: var(--shadow-sm);
-          transition: transform .45s var(--easing-out), border-color .35s var(--easing), box-shadow .45s var(--easing), background .45s var(--easing);
+          position: relative;
+          display: flex; flex-direction: column; gap: 8px;
+          padding: 22px 0 6px;
+          border-top: 1px solid var(--line-2);
+          transition: opacity .35s var(--easing);
+          opacity: .6;
         }
         .step::before{
-          content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px;
-          background: linear-gradient(90deg, transparent, var(--accent), transparent);
-          transform: scaleX(0); transition: transform .6s var(--easing-out);
+          content: ""; position: absolute; left: 0; right: 0; top: -1px; height: 2px;
+          background: var(--pop);
+          transform: scaleX(0); transform-origin: left; transition: transform .6s var(--easing-out);
         }
-        @media (hover:hover) and (pointer:fine){.step:hover{ transform: translateY(-4px); border-color: var(--line-2); box-shadow: var(--shadow-md); }}
+        .step.is-active{ opacity: 1; }
         .step.is-active::before{ transform: scaleX(1); }
-@media (hover:hover) and (pointer:fine){.step:hover::before{ transform: scaleX(1); }}
-        .step.is-active{ border-color: var(--line-3); background: linear-gradient(180deg, rgba(124,138,255,.10), rgba(124,138,255,.02)), var(--surface); }
-        .step-num{
-          font-family: var(--font-display); font-size: 34px; line-height: 1; letter-spacing: -0.02em;
-          color: transparent; -webkit-text-stroke: 1.2px rgba(124,138,255,.5);
-          transition: -webkit-text-stroke-color .35s var(--easing);
-        }
-        .step.is-active .step-num{ -webkit-text-stroke-color: var(--accent-2); }
-@media (hover:hover) and (pointer:fine){.step:hover .step-num{ -webkit-text-stroke-color: var(--accent-2); }}
+        @media (hover:hover) and (pointer:fine){.step:hover{ opacity: 1; }}
+        .step-num{ font: 500 13px/1 var(--font-mono); letter-spacing: .08em; color: var(--muted); transition: color .35s var(--easing); }
+        .step.is-active .step-num{ color: var(--pop-ink); }
         .step-arrow{ display: none; }
-        .step h3{ margin: 0; font-size: 18px; letter-spacing: -0.01em; font-family: var(--font-display); color: var(--text); }
-        .step p{ margin: 0; color: var(--muted); font-size: 14.5px; line-height: 1.55; }
-        @media (max-width: 1000px){ .steps{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+        .step h3{ margin: 2px 0 0; font-size: 20px; letter-spacing: -0.015em; font-family: var(--font-display); color: var(--text); }
+        .step p{ margin: 0; color: var(--muted); font-size: 15px; line-height: 1.55; }
+        @media (max-width: 1000px){ .steps{ grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px 28px; } }
         @media (max-width: 760px){
-          .steps{ grid-template-columns: 1fr; }
-          .step{ padding: 18px 20px; }
+          .steps{ grid-template-columns: 1fr; gap: 0; }
+          .step{ padding: 18px 0 18px 28px; border-top: 0; border-left: 1px solid var(--line-2); }
+          .step::before{ left: -1px; right: auto; top: 0; bottom: 0; width: 2px; height: auto; transform: scaleY(0); transform-origin: top; }
+          .step.is-active::before{ transform: scaleY(1); }
           .video-frame{ aspect-ratio: 4 / 3; }
           .video-bar{ gap:10px; padding:10px 12px; }
         }
@@ -3145,19 +3308,6 @@ function App() {
   const [introKey, setIntroKey] = React.useState(0);
   React.useEffect(() => {
     const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce || !window.Lenis) return undefined;
-    const lenis = new window.Lenis({
-      lerp: 0.1,
-      smoothWheel: true,
-      wheelMultiplier: 1.25
-    });
-    window.__lenis = lenis;
-    let raf = 0;
-    const loop = t => {
-      lenis.raf(t);
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
     const onClick = e => {
       const a = e.target.closest && e.target.closest('a[href^="#"]');
       if (!a) return;
@@ -3166,18 +3316,14 @@ function App() {
       const el = document.querySelector(id);
       if (!el) return;
       e.preventDefault();
-      lenis.scrollTo(el, {
-        offset: id === '#product' ? 0 : -70,
-        duration: 1.6
+      const y = el.getBoundingClientRect().top + window.scrollY + (id === '#product' ? 0 : -70);
+      window.scrollTo({
+        top: Math.max(0, y),
+        behavior: reduce ? 'auto' : 'smooth'
       });
     };
     document.addEventListener('click', onClick);
-    return () => {
-      cancelAnimationFrame(raf);
-      document.removeEventListener('click', onClick);
-      lenis.destroy();
-      window.__lenis = null;
-    };
+    return () => document.removeEventListener('click', onClick);
   }, []);
   React.useEffect(() => {
     const els = document.querySelectorAll('.reveal');

@@ -7,7 +7,14 @@
    Every frame this writes window.__vgTarget for DeviceTour. */
 
 const STORY = [
-  { id: 'product', len: 0.6,  dev: 'r', yaw: -0.5,  pitch: 0.2,  size: 0.7,  spin: 1, floor: 1, cy: 0.53 },
+  // the hero (24.11.2026, Osama): the device large and upright, turned a little to the left,
+  // its base sinking into a soft light haze; no floor, only a faint sway
+  // the device stands still and the bottom edge of the screen cuts it off: `show` is the part that stays
+  // on screen. Phones: text on top, the device under it, never under the text.
+  // 24.11.2026: upright, the face turned left so its right side shows; a very small, slow sway
+  { id: 'product', len: 0.6,  dev: 'r', yaw: -0.62, pitch: 0, roll: 0, spin: 1, sway: 0.035, floor: 0, hero: 1,
+    size: 1.15, cxw: 0.75, maxw: 0.56, show: 0.8, 
+    mob: { size: 0.95, maxw: 1.38, show: 0.86, dh: 0.69 } },
   { id: 'build',   len: 1.5,  dev: 'r', yaw: -0.5,  pitch: 0.2,  size: 0.6,  build: 1 },
   { id: 'problem', len: 0.62, dev: 'l', yaw: 0.75,  pitch: 0.22, size: 0.52, lcd1: 'NO RECORD', lcd2: 'PAPER ONLY', state: 'warn' },
   { id: 'how',     len: 0.95, dev: 'r', yaw: -0.7,  pitch: 0.2,  size: 0.56 },
@@ -35,11 +42,12 @@ function storyEase(t){ t = t < 0 ? 0 : t > 1 ? 1 : t; return t * t * (3 - 2 * t)
 function Story(){
   const ref = React.useRef(null);
   const panels = React.useRef([]);
+  const fog = React.useRef(null);
   const [buildStep, setBuildStep] = React.useState(0);
   const [howStep, setHowStep] = React.useState(0);
 
   React.useEffect(() => {
-    let raf = 0, alive = true, lastB = -1, lastH = -1;
+    let raf = 0, alive = true, lastB = -1, lastH = -1, heroO = '', heroBg = null, heroTextBottom = 0;
     const starts = []; STORY.reduce((a, c, i) => { starts[i] = a; return a + c.len; }, 0);
 
     // the sticky nav takes its own height at the top of the page; pull the story up under it
@@ -49,8 +57,11 @@ function Story(){
       el.style.marginTop = '0px';
       const top = el.getBoundingClientRect().top + window.scrollY;
       if (top > 0 && top < 200) el.style.marginTop = (-top) + 'px';
+      const hp = panels.current[0];                       // where the hero text ends (phones keep the device below it)
+      if (hp) heroTextBottom = hp.offsetTop + hp.offsetHeight;
     };
     tuck(); window.addEventListener('resize', tuck);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(tuck);   // the text height changes once the fonts load
 
     const frame = () => {
       if (!alive) return;
@@ -63,20 +74,40 @@ function Story(){
       const wide = vw >= 900;
 
       // ---- the device: hold inside a chapter, glide between chapters ----
-      const placeOf = (c) => wide
-        ? { cx: (c.dev === 'r' ? 0.7 : 0.3) * vw, cy: (c.cy || 0.52) * U, size: Math.min(c.size * U, 0.44 * vw) }
-        : { cx: 0.5 * vw, cy: 0.3 * U, size: Math.min(c.size * 0.64 * U, 0.9 * vw) };
+      const DH = 0.69;                                     // on-screen device height per unit of size (measured)
+      const placeOf = (c) => {
+        if (c.hero){
+          if (wide){
+            const size = Math.min(c.size * U, c.maxw * vw), h = size * DH;
+            return { cx: c.cxw * vw, cy: U - (c.show - 0.5) * h, size };
+          }
+          const size = Math.min(c.mob.size * U, c.mob.maxw * vw), h = size * DH;
+          // phones: the device sits at the bottom, its base cut off by the screen edge;
+          // the text is anchored just above it (see heroDevTop below)
+          const hm = size * c.mob.dh;
+          return { cx: 0.5 * vw, cy: U - (c.mob.show - 0.5) * hm, size, top: U - c.mob.show * hm };
+        }
+        return wide
+          ? { cx: (c.cxw || (c.dev === 'r' ? 0.7 : 0.3)) * vw, cy: (c.cy || 0.52) * U, size: Math.min(c.size * U, (c.maxw || 0.44) * vw) }
+          : { cx: 0.5 * vw, cy: 0.3 * U, size: Math.min(c.size * 0.64 * U, 0.9 * vw) };
+      };
       let i = 0; for (let k = 0; k < STORY.length; k++) if (pos >= starts[k]) i = k;
       const c = STORY[i], u = pos - starts[i];
       let A = placeOf(c), cfg = c, B = null, m = 0;
+      // phones: keep the hero text right above the device, never on it
+      if (!wide && STORY[0].mob){
+        const hp = panels.current[0], h0 = placeOf(STORY[0]);
+        const b = Math.round(U - h0.top + 20) + 'px';
+        if (hp && hp.__b !== b){ hp.__b = b; hp.style.bottom = b; }
+      } else if (panels.current[0] && panels.current[0].__b){ panels.current[0].__b = ''; panels.current[0].style.bottom = ''; }
       const G = 0.2;                                       // half of the glide between two chapters
       if (u > c.len - G && i < STORY.length - 1){ B = STORY[i + 1]; m = storyEase((u - (c.len - G)) / (2 * G)); }
       else if (u < G && i > 0){ B = STORY[i - 1]; m = storyEase((G - u) / (2 * G)); }
-      let P = A, yaw = c.yaw, pitch = c.pitch;
+      let P = A, yaw = c.yaw, pitch = c.pitch, roll = c.roll || 0;
       if (B){
         const Bp = placeOf(B);
         P = { cx: A.cx + (Bp.cx - A.cx) * m, cy: A.cy + (Bp.cy - A.cy) * m, size: A.size + (Bp.size - A.size) * m };
-        yaw = c.yaw + (B.yaw - c.yaw) * m; pitch = c.pitch + (B.pitch - c.pitch) * m;
+        yaw = c.yaw + (B.yaw - c.yaw) * m; pitch = c.pitch + (B.pitch - c.pitch) * m; roll = (c.roll || 0) + ((B.roll || 0) - (c.roll || 0)) * m;
         if (m > 0.5) cfg = B;
       }
       // after the last chapter the stage scrolls away and the device goes with it
@@ -97,7 +128,7 @@ function Story(){
         active: r.bottom > 0 && r.top < vh,
         key: cfg.id,
         cx: P.cx, cy: P.cy - over + Math.max(0, r.top), size: P.size,
-        yaw, pitch, spin: cfg.spin || 0, floor: cfg.floor || 0,
+        yaw, pitch, roll, spin: cfg.spin || 0, sway: cfg.sway, floor: cfg.floor || 0,
         build: cfg.build ? bp : -1,
         lcd1: how ? how.lcd1 : cfg.lcd1, lcd2: how ? how.lcd2 : cfg.lcd2, state: how ? (how.state || 'idle') : cfg.state,
         power: 1,
@@ -113,8 +144,16 @@ function Story(){
         const v = Math.min(vin, vout);
         const y = (1 - vin) * 36 - (1 - vout) * 36;
         const o = v.toFixed(3);
+        // the hero has its own background (navy, grid, light haze); it leaves with the hero text
+        if (k === 0 && heroO !== o){
+          heroO = o;
+          const bg = heroBg || (heroBg = document.querySelector('.hero-bg'));
+          if (bg){ bg.style.opacity = o; bg.style.visibility = v > 0.001 ? 'visible' : 'hidden'; }
+          if (fog.current){ fog.current.style.opacity = o; }
+        }
         if (p.__o !== o){ p.__o = o; p.style.opacity = o; p.style.visibility = v > 0.001 ? 'visible' : 'hidden'; }
-        p.style.transform = 'translate3d(0,' + y.toFixed(1) + 'px,0)';
+        const tf = 'translate3d(0,' + y.toFixed(1) + 'px,0)';
+        if (p.__tf !== tf){ p.__tf = tf; p.style.transform = tf; }   // write only when it changes
       });
     };
     raf = requestAnimationFrame(frame);
@@ -131,12 +170,21 @@ function Story(){
     <section ref={ref} className="story" id="product" style={{ '--run': STORY_RUN + 1 }} aria-label="VeriGate">
       {anchors.filter(a => a.id).map(a => <span key={a.id} id={a.id} className="st-anchor" style={{ top: 'calc(' + a.top + ' * var(--unit))' }}></span>)}
       <div className="story-sticky">
+        {/* the light haze the hero device stands in; it sits over the 3D canvas, under the text */}
+        <div className="st-fog" ref={fog} aria-hidden="true"></div>
         <div className={side(STORY[0]) + ' st-hero'} ref={P(0)}>
-          <h1 className="st-h1">A receiving device,<br /><em>verified instantly.</em></h1>
-          <p className="st-lede">The driver taps a card. The shipment shows on the screen. The worker approves it.</p>
+          {/* 24.11.2026 (Osama): just the name and one catch phrase */}
+          <h1 className="st-h1 st-brand">VeriGate</h1>
+          <p className="st-catch"><em>Verified instantly.</em></p>
           <div className="st-cta">
-            <a href="https://www.linkedin.com/in/osamasunaallah/" target="_blank" rel="noopener noreferrer" className="btn primary big">Connect on LinkedIn</a>
-            <a href="#process" className="btn ghost big">See it work</a>
+            <a href="https://www.linkedin.com/in/osamasunaallah/" target="_blank" rel="noopener noreferrer" className="btn primary big">
+              Connect on LinkedIn
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>
+            </a>
+            <a href="#process" className="btn ghost big">
+              See it work
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>
+            </a>
           </div>
         </div>
 

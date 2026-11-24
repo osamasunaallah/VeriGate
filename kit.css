@@ -390,9 +390,117 @@ button, [role="button"], .btn, .mini, .qr, .nav-links a, .nav-cta, .brand, .tour
 }
 .nav-links a:active, .nav-cta:active, .brand:active{ opacity: .72; }
 .tour-power:active{ transform: scale(.94); }
-/* the sticky nav clears the notch and the landscape side insets (viewport-fit=cover) */
-html .kit-nav{
-  top: calc(14px + env(safe-area-inset-top, 0px));
-  width: min(1280px, calc(100% - 32px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
-}
+/* the nav bar pads itself for the notch and side insets (Nav.jsx) */
 .finale{ padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px)); }
+
+/* =========================================================
+   24.11.2026 (Osama): a new first screen, and fewer boxes
+   ========================================================= */
+/* the nav: a bar, see-through over the hero, dark once you scroll */
+.kit-nav{ background: transparent !important; }
+.kit-nav.scrolled{ background: rgba(4,6,14,.88) !important; }
+
+/* the hero's own background: deep navy, a faint grid, a floor grid in perspective and a
+   blue glow behind the device. Fixed behind the 3D canvas; Story.jsx fades it out with
+   the hero text, so the rest of the page stays black. Static, nothing animates. */
+.hero-bg{
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+  background:
+    radial-gradient(ellipse 46% 62% at 72% 70%, rgba(45,107,255,.30), transparent 70%),
+    radial-gradient(ellipse 55% 40% at 10% -5%, rgba(45,107,255,.10), transparent 70%),
+    linear-gradient(180deg, #02040A 0%, #050A1A 50%, #0A1636 100%);
+}
+.hero-bg::before{
+  content: ""; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(130,160,255,.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(130,160,255,.07) 1px, transparent 1px);
+  background-size: 88px 88px; background-position: center top;
+  -webkit-mask-image: radial-gradient(ellipse 70% 70% at 70% 45%, #000 15%, transparent 75%);
+          mask-image: radial-gradient(ellipse 70% 70% at 70% 45%, #000 15%, transparent 75%);
+}
+.hero-bg::after{
+  content: ""; position: absolute; left: -40%; right: -40%; bottom: -2%; height: 46%;
+  background-image:
+    linear-gradient(rgba(140,170,255,.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(140,170,255,.16) 1px, transparent 1px);
+  background-size: 96px 96px; background-position: center bottom;
+  transform: perspective(520px) rotateX(64deg); transform-origin: 50% 100%;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 70%);
+          mask-image: linear-gradient(180deg, transparent 0%, #000 70%);
+}
+/* the haze: light rising from below that swallows the base of the device */
+.st-fog{
+  position: absolute; left: 0; right: 0; bottom: 0; height: 32%; pointer-events: none;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 35%); mask-image: linear-gradient(180deg, transparent 0%, #000 35%);
+  background:
+    linear-gradient(180deg, transparent 0%, rgba(214,226,255,.06) 50%, rgba(232,238,255,.3) 100%),
+    radial-gradient(ellipse 36% 62% at 75% 106%, rgba(255,255,255,.72) 0%, rgba(225,233,255,.5) 30%, rgba(150,178,255,.22) 58%, transparent 82%),
+    radial-gradient(ellipse 80% 55% at 28% 112%, rgba(210,222,255,.45) 0%, rgba(90,130,240,.12) 55%, transparent 78%);
+}
+.st-hero .btn svg{ flex: none; }
+.st-hero .btn.ghost{ background: transparent; border-color: rgba(255,255,255,.38); }
+@media (max-width: 899px){
+  .hero-bg{
+    background:
+      radial-gradient(ellipse 90% 45% at 50% 86%, rgba(45,107,255,.34), transparent 70%),
+      linear-gradient(180deg, #02040A 0%, #050A1A 45%, #0A1636 100%);
+  }
+  .hero-bg::after{ height: 36%; }
+  /* phones: the text sits at the top, the device fills the lower part and sinks into the haze */
+  /* phones: the text is centred and sits just above the device (Story.jsx sets its bottom) */
+  .st-panel.st-hero{ top: auto; height: auto; padding: 0; gap: 14px; justify-content: flex-end; align-items: center; text-align: center; }
+  .st-hero .st-lede{ margin-left: auto; margin-right: auto; }
+  .st-hero .st-h1{ font-size: clamp(38px, 11.4vw, 52px); line-height: 1.02; }
+  .st-hero .st-lede{ font-size: 16px; }
+  .st-hero .st-cta{ flex-wrap: nowrap; gap: 10px; justify-content: center; }
+  .st-hero .st-cta .btn{ padding: 12px 15px; font-size: 14px; gap: 7px; }
+  .st-fog{
+    height: 30%;
+    background:
+      linear-gradient(180deg, transparent 0%, rgba(214,226,255,.08) 50%, rgba(232,238,255,.42) 100%),
+      radial-gradient(ellipse 75% 70% at 50% 106%, rgba(255,255,255,.9) 0%, rgba(225,233,255,.7) 30%, rgba(150,178,255,.3) 58%, transparent 82%);
+  }
+}
+
+/* the process steps: a timeline, no cards (Process.jsx); the old surface overrides are undone */
+.step, .step.is-active{ background: none !important; box-shadow: none !important; border-radius: 0 !important; }
+.step::before{ background: var(--pop) !important; }
+@media (hover:hover) and (pointer:fine){ .step:hover{ transform: none !important; } }
+.video-frame{ border: 0 !important; box-shadow: none !important; border-radius: 22px !important; }
+
+/* the finale: no box round the contact, just the words and the button */
+.finale-card{ background: none; border: 0; box-shadow: none; padding: 0; gap: 14px; width: min(620px, 100%); }
+.finale-card h2{ font-size: clamp(30px, 3.6vw, 52px); line-height: 1.05; letter-spacing: -0.03em; }
+.finale-card p{ font-size: 17px; margin-bottom: 8px; }
+
+/* 24.11.2026: the hero says only "VeriGate" and "Verified instantly." */
+.st-h1.st-brand{ font-size: clamp(72px, 10vw, 168px); line-height: .92; letter-spacing: -0.045em; }
+.st-catch{ margin: 0; font: 600 clamp(26px, 2.8vw, 44px)/1.1 var(--font-display); letter-spacing: -0.025em; }
+.st-catch em{ font-style: normal; color: var(--pop-ink, #5B8CFF); }
+.st-hero .st-cta{ margin-top: 14px; }
+@media (max-width: 899px){
+  .st-hero .st-h1.st-brand{ font-size: clamp(60px, 19vw, 96px); }
+  .st-catch{ font-size: clamp(24px, 7vw, 32px); }
+}
+
+/* 24.11.2026 (Osama: "a different texture" -> circuit board): faint PCB traces with solder pads
+   and vias (bg-circuit.svg, drawn once by script) replace the grid on the hero background.
+   Static image, masked to fade toward the edges and stronger behind the device. The earlier
+   streamlines + grain were dropped. */
+.hero-bg::before{
+  background: url("bg-circuit.svg?v=1") center / cover no-repeat;
+  -webkit-mask-image: radial-gradient(ellipse 75% 85% at 68% 55%, #000 20%, rgba(0,0,0,.35) 60%, transparent 92%);
+          mask-image: radial-gradient(ellipse 75% 85% at 68% 55%, #000 20%, rgba(0,0,0,.35) 60%, transparent 92%);
+}
+@media (max-width: 899px){
+  .hero-bg::before{
+    background-position: 62% center;
+    -webkit-mask-image: radial-gradient(ellipse 120% 70% at 50% 60%, #000 25%, transparent 90%);
+            mask-image: radial-gradient(ellipse 120% 70% at 50% 60%, #000 25%, transparent 90%);
+  }
+}
+/* the catch phrase, larger */
+.st-catch{ font-size: clamp(36px, 4.2vw, 68px); }
+@media (max-width: 899px){ .st-catch{ font-size: clamp(30px, 9.2vw, 42px); } }
+

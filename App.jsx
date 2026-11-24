@@ -9,15 +9,10 @@ function App(){
   // fresh effect, fresh GLB animation timeline).
   const [introKey, setIntroKey]         = React.useState(0);
 
-  // smooth wheel scrolling (Lenis); touch keeps the phone's own scrolling
+  // 24.11.2026: native scrolling (Lenis removed: its own frame loop and its smoothing read as lag;
+  // Chrome/Edge already smooth the mouse wheel). Nav links glide with the browser's smooth scroll.
   React.useEffect(() => {
     const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce || !window.Lenis) return undefined;
-    const lenis = new window.Lenis({ lerp: 0.1, smoothWheel: true, wheelMultiplier: 1.25 });
-    window.__lenis = lenis;
-    let raf = 0;
-    const loop = (t) => { lenis.raf(t); raf = requestAnimationFrame(loop); };
-    raf = requestAnimationFrame(loop);
     const onClick = (e) => {
       const a = e.target.closest && e.target.closest('a[href^="#"]');
       if (!a) return;
@@ -26,10 +21,11 @@ function App(){
       const el = document.querySelector(id);
       if (!el) return;
       e.preventDefault();
-      lenis.scrollTo(el, { offset: id === '#product' ? 0 : -70, duration: 1.6 });
+      const y = el.getBoundingClientRect().top + window.scrollY + (id === '#product' ? 0 : -70);
+      window.scrollTo({ top: Math.max(0, y), behavior: reduce ? 'auto' : 'smooth' });
     };
     document.addEventListener('click', onClick);
-    return () => { cancelAnimationFrame(raf); document.removeEventListener('click', onClick); lenis.destroy(); window.__lenis = null; };
+    return () => document.removeEventListener('click', onClick);
   }, []);
 
   React.useEffect(() => {

@@ -526,8 +526,9 @@ function ReceivingScene({ timeRef }){
       const warmUp = () => {
         if (!mount.isConnected) return;
         const hidden = []; scene.traverse(o => { if (!o.visible){ hidden.push(o); o.visible = true; } });
-        try { renderer.compile(scene, camera); } catch (e) {}
+        try { renderer.compile(scene, camera); renderer.render(scene, camera); } catch (e) {}   // the draw uploads textures and buffers too
         hidden.forEach(o => { o.visible = false; });
+        try { renderAt(Math.max(0, Math.min(RS_DUR, timeRef.current))); } catch (e) {}
       };
       if (window.requestIdleCallback) requestIdleCallback(warmUp, { timeout: 4000 }); else setTimeout(warmUp, 1500);
 
@@ -548,9 +549,18 @@ function ReceivingScene({ timeRef }){
       };
     };
 
-    if (window.__threeReady) start();
-    else window.addEventListener('threeready', start, { once: true });
+    // build this scene only after the hero device is on screen, in idle time, so the first
+    // screen is not held up by a second 3D scene far down the page (24.11.2026)
+    let kicked = false, kickT = 0;
+    const kick = () => {
+      if (kicked || !alive) return; kicked = true;
+      const go = () => { if (window.__threeReady) start(); else window.addEventListener('threeready', start, { once: true }); };
+      if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 2500 }); else setTimeout(go, 300);
+    };
+    if (window.__vgDeviceShown) kick();
+    else { window.addEventListener('vg-device-shown', kick, { once: true }); kickT = setTimeout(kick, 6000); }
     return () => {
+      clearTimeout(kickT); window.removeEventListener('vg-device-shown', kick);
       alive = false; cancelAnimationFrame(raf);
       if (ro) ro.disconnect(); if (io) io.disconnect();
       if (mount.__dispose) mount.__dispose();
