@@ -1082,21 +1082,10 @@ function Nav() {
   }, NAV_LINKS.map(l => React.createElement("a", {
     key: l.href,
     href: l.href
-  }, l.label))), React.createElement("a", {
-    href: "https://www.linkedin.com/in/osamasunaallah/",
-    target: "_blank",
-    rel: "noopener noreferrer",
-    className: "nav-cta",
-    "aria-label": "LinkedIn \xE2\u20AC\u201D Osama Sunaallah"
-  }, React.createElement("svg", {
-    viewBox: "0 0 24 24",
-    fill: "currentColor",
-    width: "14",
-    height: "14",
+  }, l.label))), React.createElement("span", {
+    className: "nav-spacer",
     "aria-hidden": "true"
-  }, React.createElement("path", {
-    d: "M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14zM8.34 18.34V9.67H5.67v8.67h2.67zM7 8.5a1.55 1.55 0 1 0 0-3.1 1.55 1.55 0 0 0 0 3.1zm11.34 9.84v-4.74c0-2.54-1.36-3.72-3.17-3.72-1.46 0-2.11.8-2.48 1.36V9.67h-2.67c.04.75 0 8.67 0 8.67h2.67v-4.84c0-.24.02-.48.09-.66.19-.48.63-.98 1.37-.98.97 0 1.36.74 1.36 1.82v4.66h2.83z"
-  })), "LinkedIn"), React.createElement("style", null, `
+  }), "   ", React.createElement("style", null, `
         /* 24.11.2026: a full-width bar with one hairline under it (was a floating pill) */
         .kit-nav{
           --gut: max(28px, calc((100vw - 1240px) / 2));
@@ -1214,7 +1203,7 @@ const STORY = [{
   show: 0.8,
   mob: {
     size: 0.95,
-    maxw: 1.38,
+    maxw: 1.1,
     show: 0.86,
     dh: 0.69
   }
@@ -1340,8 +1329,10 @@ function Story() {
       const vw = innerWidth,
         vh = innerHeight;
       const r = el.getBoundingClientRect();
-      const U = r.height / (STORY_RUN + 1);
-      const pos = -r.top / U;
+      const sticky = el.firstElementChild && el.querySelector('.story-sticky');
+      const U = sticky ? sticky.offsetHeight : r.height / (STORY_RUN + 1);
+      const S = Math.max(1, (r.height - U) / STORY_RUN);
+      const pos = -r.top / S;
       const wide = vw >= 900;
       const DH = 0.69;
       const placeOf = c => {
@@ -1419,7 +1410,7 @@ function Story() {
         roll = (c.roll || 0) + ((B.roll || 0) - (c.roll || 0)) * m;
         if (m > 0.5) cfg = B;
       }
-      const over = Math.max(0, pos - STORY_RUN) * U;
+      const over = Math.max(0, pos - STORY_RUN) * S;
       const bi = STORY.findIndex(s => s.build);
       const bp = Math.max(0, Math.min(1, (pos - starts[bi] - 0.12) / (STORY[bi].len - 0.36)));
       const hi = STORY.findIndex(s => s.id === 'how');
@@ -1515,7 +1506,7 @@ function Story() {
     className: "story",
     id: "product",
     style: {
-      '--run': STORY_RUN + 1
+      '--run': STORY_RUN
     },
     "aria-label": "VeriGate"
   }, anchors.filter(a => a.id).map(a => React.createElement("span", {
@@ -1523,7 +1514,7 @@ function Story() {
     id: a.id,
     className: "st-anchor",
     style: {
-      top: 'calc(' + a.top + ' * var(--unit))'
+      top: 'calc(' + a.top + ' * var(--step))'
     }
   })), React.createElement("div", {
     className: "story-sticky"
@@ -1541,25 +1532,8 @@ function Story() {
   }, React.createElement("em", null, "Verified instantly.")), React.createElement("div", {
     className: "st-cta"
   }, React.createElement("a", {
-    href: "https://www.linkedin.com/in/osamasunaallah/",
-    target: "_blank",
-    rel: "noopener noreferrer",
-    className: "btn primary big"
-  }, "Connect on LinkedIn", React.createElement("svg", {
-    viewBox: "0 0 24 24",
-    width: "18",
-    height: "18",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: "2.2",
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
-    "aria-hidden": "true"
-  }, React.createElement("path", {
-    d: "M7 17 17 7M8 7h9v9"
-  }))), React.createElement("a", {
     href: "#process",
-    className: "btn ghost big"
+    className: "btn primary big"
   }, "See it work", React.createElement("svg", {
     viewBox: "0 0 24 24",
     width: "16",
@@ -3351,7 +3325,7 @@ function App() {
   return React.createElement(React.Fragment, null, introMounted && React.createElement(PhoenixIntro, {
     key: introKey,
     onDone: () => setIntroMounted(false)
-  }), React.createElement(DeviceTour, null), React.createElement(Nav, null), React.createElement("main", null, React.createElement(Story, null), React.createElement(Process, null), React.createElement(Contact, null)), React.createElement(Footer, null));
+  }), React.createElement(DeviceTour, null), React.createElement(Nav, null), React.createElement("main", null, React.createElement(Story, null), React.createElement(Process, null), React.createElement(Contact, null)));
 }
 if (!window.__verigateRoot) {
   window.__verigateRoot = ReactDOM.createRoot(document.getElementById('root'));

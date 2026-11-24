@@ -248,7 +248,7 @@ html.lenis, html.lenis body{ height: auto; }
 .tour-power:focus-visible{ outline: 2px solid var(--text); outline-offset: 2px; }
 
 /* the story: a tall section with one sticky screen */
-.story{ --unit: 100vh; position: relative; height: calc(var(--run) * var(--unit)); }
+.story{ --unit: 100vh; --step: var(--unit); position: relative; height: calc(var(--run) * var(--step) + var(--unit)); }
 @supports (height: 100svh){ .story{ --unit: 100svh; } }
 .st-anchor{ position: absolute; left: 0; width: 1px; height: 1px; pointer-events: none; }
 .story-sticky{ position: sticky; top: 0; height: var(--unit); overflow: hidden; }
@@ -503,4 +503,17 @@ button, [role="button"], .btn, .mini, .qr, .nav-links a, .nav-cta, .brand, .tour
 /* the catch phrase, larger */
 .st-catch{ font-size: clamp(36px, 4.2vw, 68px); }
 @media (max-width: 899px){ .st-catch{ font-size: clamp(30px, 9.2vw, 42px); } }
+
+/* 24.11.2026 (Osama, on his phone): less scrolling, side margins, one LinkedIn button, and the
+   page ends on the device in the middle of the screen (the footer was removed). */
+@media (max-width: 899px){
+  .story{ --step: 58svh; }                         /* a chapter changes after ~0.6 screen of scrolling */
+  .section{ padding: 56px 0; }
+  .st-panel, .st-panel.at-l, .st-panel.at-r{ left: 24px; right: 24px; }
+  .st-hero .st-h1.st-brand{ font-size: clamp(56px, 16vw, 84px); }
+  .finale{ min-height: 100svh; padding: 76px 24px calc(28px + env(safe-area-inset-bottom, 0px)); justify-content: center; }
+  .finale .contact-slot{ height: 50svh; margin: 0 0 -10px; }
+}
+.finale{ min-height: 100svh; }
+.nav-spacer{ display: block; }
 

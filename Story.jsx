@@ -14,7 +14,7 @@ const STORY = [
   // 24.11.2026: upright, the face turned left so its right side shows; a very small, slow sway
   { id: 'product', len: 0.6,  dev: 'r', yaw: -0.62, pitch: 0, roll: 0, spin: 1, sway: 0.035, floor: 0, hero: 1,
     size: 1.15, cxw: 0.75, maxw: 0.56, show: 0.8, 
-    mob: { size: 0.95, maxw: 1.38, show: 0.86, dh: 0.69 } },
+    mob: { size: 0.95, maxw: 1.1, show: 0.86, dh: 0.69 } },   // maxw 1.1: side margins on phones (24.11.2026)
   { id: 'build',   len: 1.5,  dev: 'r', yaw: -0.5,  pitch: 0.2,  size: 0.6,  build: 1 },
   { id: 'problem', len: 0.62, dev: 'l', yaw: 0.75,  pitch: 0.22, size: 0.52, lcd1: 'NO RECORD', lcd2: 'PAPER ONLY', state: 'warn' },
   { id: 'how',     len: 0.95, dev: 'r', yaw: -0.7,  pitch: 0.2,  size: 0.56 },
@@ -69,8 +69,11 @@ function Story(){
       const el = ref.current; if (!el) return;
       const vw = innerWidth, vh = innerHeight;
       const r = el.getBoundingClientRect();
-      const U = r.height / (STORY_RUN + 1);              // one chapter unit, in px (= the sticky screen height)
-      const pos = -r.top / U;                              // scroll position in chapter units
+      // U = the sticky screen height; S = the scroll distance of one chapter unit (shorter on phones, 24.11.2026)
+      const sticky = el.firstElementChild && el.querySelector('.story-sticky');
+      const U = sticky ? sticky.offsetHeight : r.height / (STORY_RUN + 1);
+      const S = Math.max(1, (r.height - U) / STORY_RUN);
+      const pos = -r.top / S;                              // scroll position in chapter units
       const wide = vw >= 900;
 
       // ---- the device: hold inside a chapter, glide between chapters ----
@@ -111,7 +114,7 @@ function Story(){
         if (m > 0.5) cfg = B;
       }
       // after the last chapter the stage scrolls away and the device goes with it
-      const over = Math.max(0, pos - STORY_RUN) * U;
+      const over = Math.max(0, pos - STORY_RUN) * S;
 
       // build progress and the "how it works" step
       const bi = STORY.findIndex(s => s.build);
@@ -167,8 +170,8 @@ function Story(){
   const anchors = STORY.map((c) => { const top = acc; acc += c.len; return { id: c.id === 'product' ? null : c.id, top: top + (c.id === 'product' ? 0 : 0.45) }; });
 
   return (
-    <section ref={ref} className="story" id="product" style={{ '--run': STORY_RUN + 1 }} aria-label="VeriGate">
-      {anchors.filter(a => a.id).map(a => <span key={a.id} id={a.id} className="st-anchor" style={{ top: 'calc(' + a.top + ' * var(--unit))' }}></span>)}
+    <section ref={ref} className="story" id="product" style={{ '--run': STORY_RUN }} aria-label="VeriGate">
+      {anchors.filter(a => a.id).map(a => <span key={a.id} id={a.id} className="st-anchor" style={{ top: 'calc(' + a.top + ' * var(--step))' }}></span>)}
       <div className="story-sticky">
         {/* the light haze the hero device stands in; it sits over the 3D canvas, under the text */}
         <div className="st-fog" ref={fog} aria-hidden="true"></div>
@@ -177,11 +180,7 @@ function Story(){
           <h1 className="st-h1 st-brand">VeriGate</h1>
           <p className="st-catch"><em>Verified instantly.</em></p>
           <div className="st-cta">
-            <a href="https://www.linkedin.com/in/osamasunaallah/" target="_blank" rel="noopener noreferrer" className="btn primary big">
-              Connect on LinkedIn
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg>
-            </a>
-            <a href="#process" className="btn ghost big">
+            <a href="#process" className="btn primary big">
               See it work
               <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>
             </a>

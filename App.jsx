@@ -61,7 +61,6 @@ function App(){
         <Process />
         <Contact />
       </main>
-      <Footer />
     </>
   );
 }
