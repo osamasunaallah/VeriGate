@@ -43,6 +43,7 @@ function Story(){
   const ref = React.useRef(null);
   const panels = React.useRef([]);
   const fog = React.useRef(null);
+  const poster = React.useRef(null);
   const [buildStep, setBuildStep] = React.useState(0);
   const [howStep, setHowStep] = React.useState(0);
 
@@ -103,6 +104,16 @@ function Story(){
         const b = Math.round(U - h0.top + 20) + 'px';
         if (hp && hp.__b !== b){ hp.__b = b; hp.style.bottom = b; }
       } else if (panels.current[0] && panels.current[0].__b){ panels.current[0].__b = ''; panels.current[0].style.bottom = ''; }
+      // the device still: placed by the same formula as the 3D hero device, gone once the live device is drawn or on scroll
+      const pe = poster.current;
+      if (pe && !pe.__gone){
+        if (window.__vgDevReady || pos > 0.04){ pe.__gone = true; pe.classList.add('off'); setTimeout(() => { pe.style.display = 'none'; }, 600); }
+        else {
+          const h0 = placeOf(STORY[0]), h = h0.size * DH, st = sticky ? sticky.getBoundingClientRect().top : 0;
+          const k = Math.round(h0.cx) + '|' + Math.round(h0.cy) + '|' + Math.round(h) + '|' + Math.round(st);
+          if (pe.__k !== k){ pe.__k = k; pe.style.left = (h0.cx - 0.5167 * h) + 'px'; pe.style.top = (h0.cy - h / 2 + 0.0424 * h - st) + 'px'; pe.style.width = (0.993 * h) + 'px'; }
+        }
+      }
       const G = 0.2;                                       // half of the glide between two chapters
       if (u > c.len - G && i < STORY.length - 1){ B = STORY[i + 1]; m = storyEase((u - (c.len - G)) / (2 * G)); }
       else if (u < G && i > 0){ B = STORY[i - 1]; m = storyEase((G - u) / (2 * G)); }
@@ -174,6 +185,9 @@ function Story(){
       {anchors.filter(a => a.id).map(a => <span key={a.id} id={a.id} className="st-anchor" style={{ top: 'calc(' + a.top + ' * var(--step))' }}></span>)}
       <div className="story-sticky">
         {/* the light haze the hero device stands in; it sits over the 3D canvas, under the text */}
+        {/* 26.11.2026 (Osama: the hero must be there on arrival): a still of the hero device (its first frame, transparent)
+            stands exactly where the 3D device will be, until the 3D device has compiled and drawn */}
+        <img ref={poster} className="st-poster" src="hero-device.webp?v=1" alt="" aria-hidden="true" fetchpriority="high" />
         <div className="st-fog" ref={fog} aria-hidden="true"></div>
         <div className={side(STORY[0]) + ' st-hero'} ref={P(0)}>
           {/* 24.11.2026 (Osama): just the name and one catch phrase */}
