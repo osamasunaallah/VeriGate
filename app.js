@@ -376,6 +376,7 @@ function DeviceTour() {
           if (!alive) return;
           modelReady = true;
           first = true;
+          window.__vgDevReady = true;
         };
         if (renderer.compileAsync) renderer.compileAsync(scene, camera).then(ready, ready);else ready();
       }, undefined, err => console.error('GLB load error:', err));
@@ -1294,6 +1295,7 @@ function Story() {
   const ref = React.useRef(null);
   const panels = React.useRef([]);
   const fog = React.useRef(null);
+  const poster = React.useRef(null);
   const [buildStep, setBuildStep] = React.useState(0);
   const [howStep, setHowStep] = React.useState(0);
   React.useEffect(() => {
@@ -1385,6 +1387,27 @@ function Story() {
       } else if (panels.current[0] && panels.current[0].__b) {
         panels.current[0].__b = '';
         panels.current[0].style.bottom = '';
+      }
+      const pe = poster.current;
+      if (pe && !pe.__gone) {
+        if (window.__vgDevReady || pos > 0.04) {
+          pe.__gone = true;
+          pe.classList.add('off');
+          setTimeout(() => {
+            pe.style.display = 'none';
+          }, 600);
+        } else {
+          const h0 = placeOf(STORY[0]),
+            h = h0.size * DH,
+            st = sticky ? sticky.getBoundingClientRect().top : 0;
+          const k = Math.round(h0.cx) + '|' + Math.round(h0.cy) + '|' + Math.round(h) + '|' + Math.round(st);
+          if (pe.__k !== k) {
+            pe.__k = k;
+            pe.style.left = h0.cx - 0.5167 * h + 'px';
+            pe.style.top = h0.cy - h / 2 + 0.0424 * h - st + 'px';
+            pe.style.width = 0.993 * h + 'px';
+          }
+        }
       }
       const G = 0.2;
       if (u > c.len - G && i < STORY.length - 1) {
@@ -1518,7 +1541,14 @@ function Story() {
     }
   })), React.createElement("div", {
     className: "story-sticky"
-  }, React.createElement("div", {
+  }, React.createElement("img", {
+    ref: poster,
+    className: "st-poster",
+    src: "hero-device.webp?v=1",
+    alt: "",
+    "aria-hidden": "true",
+    fetchpriority: "high"
+  }), React.createElement("div", {
     className: "st-fog",
     ref: fog,
     "aria-hidden": "true"
@@ -3278,7 +3308,7 @@ window.Footer = Footer;
 /* ---- App ---- */
 (function(){
 function App() {
-  const [introMounted, setIntroMounted] = React.useState(true);
+  const [introMounted, setIntroMounted] = React.useState(() => location.search.indexOf('intro=1') >= 0);
   const [introKey, setIntroKey] = React.useState(0);
   React.useEffect(() => {
     const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
