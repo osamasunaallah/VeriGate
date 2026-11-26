@@ -8,9 +8,10 @@
 <meta name="author" content="Osama Sunaallah">
 <meta name="theme-color" content="#050505">
 <meta name="color-scheme" content="dark">
-<script>/* preload the 2 MB intro bird only when the intro will actually play (once per session) */
-try{if(!sessionStorage.getItem('verigate_intro_played')&&!matchMedia('(prefers-reduced-motion: reduce)').matches){var l=document.createElement('link');l.rel='preload';l.href='./phoenix-bird.glb?v=40';l.as='fetch';l.type='model/gltf-binary';l.crossOrigin='anonymous';document.head.appendChild(l)}}catch(e){}</script>
+<script>/* preload the 2 MB intro bird only when the intro will play on arrival (?intro=1 since 26.11.2026) */
+try{if(location.search.indexOf('intro=1')>=0){var l=document.createElement('link');l.rel='preload';l.href='./phoenix-bird.glb?v=40';l.as='fetch';l.type='model/gltf-binary';l.crossOrigin='anonymous';document.head.appendChild(l)}}catch(e){}</script>
 <link rel="preload" href="./verigate-logo.png?v=31" as="image">
+<link rel="preload" href="./hero-device.webp?v=1" as="image" fetchpriority="high">
 <!-- start the 3D downloads at once, in parallel, so the device is there when the page opens -->
 <!-- the import map must come before the module preloads, or "three" cannot be resolved -->
 <script type="importmap">
@@ -34,7 +35,11 @@ try{if(!sessionStorage.getItem('verigate_intro_played')&&!matchMedia('(prefers-r
 <meta property="og:image" content="./process-thumbnail.jpg">
 <meta name="twitter:card" content="summary_large_image">
 
-<link rel="stylesheet" href="kit.css?v=71">
+<!-- 26.11.2026 (Osama: heroes too slow to appear): font stylesheets load in the background so the first paint never waits for them -->
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Familjen+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Familjen+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"></noscript>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700,800&display=swap" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700,800&display=swap"></noscript>
+<link rel="stylesheet" href="kit.css?v=74">
 <link rel="icon" type="image/png" href="./product-clean.jpg">
 
 <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -60,6 +65,6 @@ try{if(!sessionStorage.getItem('verigate_intro_played')&&!matchMedia('(prefers-r
   <div id="root"></div>
 
 
-  <script src="app.js?v=63"></script>
+  <script src="app.js?v=65"></script>
 </body>
 </html>
