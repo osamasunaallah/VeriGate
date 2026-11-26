@@ -1,5 +1,5 @@
 /* Verigate v3 — UI kit base. Dark professional theme. */
-@import url('./colors_and_type.css?v=42');
+@import url('./colors_and_type.css?v=43');
 
 *{ box-sizing: border-box; }
 html,body{
@@ -517,3 +517,19 @@ button, [role="button"], .btn, .mini, .qr, .nav-links a, .nav-cta, .brand, .tour
 .finale{ min-height: 100svh; }
 .nav-spacer{ display: block; }
 
+
+/* Apple design pass (26.11.2026, Osama: "apply the apple design skill"). No layout or colour changes:
+   the page follows the system settings "Reduce transparency" (solid nav) and "Increase contrast" (stronger lines). */
+@media (prefers-reduced-transparency: reduce){ .kit-nav, .kit-nav.scrolled{ background: #0A0A0A !important; } }
+@media (prefers-contrast: more){ :root{ --line: rgba(255,255,255,.28) !important; --line-2: rgba(255,255,255,.42) !important; } }
+
+/* Impeccable pass (26.11.2026, Osama chose "polish, keep layouts"): the browser's own surfaces in the site's blue,
+   and figures that line up wherever numbers sit in rows */
+::selection{ background: #2D6BFF; color: #fff; }
+html{ scrollbar-color: #2B3A66 #0A0A0A; }
+input, textarea{ caret-color: #2D6BFF; }
+table, td, th, time, .num, [data-count]{ font-variant-numeric: tabular-nums; }
+
+/* 26.11.2026: the hero device still (Story) until the 3D device is drawn; it fades out when the live device takes over */
+.st-poster{ position: absolute; left: -9999px; top: 0; height: auto; pointer-events: none; user-select: none; transition: opacity .45s ease; }
+.st-poster.off{ opacity: 0; }
