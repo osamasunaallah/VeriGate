@@ -3,7 +3,9 @@ function App(){
   // PhoenixIntro: mounted once; unmounts itself after its onDone fires.
   // The intro internally handles its own gating (sessionStorage +
   // prefers-reduced-motion + Three.js failure -> fallback).
-  const [introMounted, setIntroMounted] = React.useState(true);
+  // 26.11.2026 (Osama: "let the heroes be there when I land"): the intro no longer plays on arrival; the page shows
+  // at once. It still plays from the nav logo, or with ?intro=1.
+  const [introMounted, setIntroMounted] = React.useState(() => location.search.indexOf('intro=1') >= 0);
   // Bumped each time the nav logo is clicked. Used as React `key` so the
   // PhoenixIntro component is fully unmounted-then-remounted (fresh state,
   // fresh effect, fresh GLB animation timeline).
