@@ -1,3 +1,4 @@
+/* 26.11.2026: the font @imports moved to non-blocking <link>s in index.html (they held up the first paint by ~2 s) */
 /* =========================================================
    Verigate v3 — Dark Professional Theme
    ---------------------------------------------------------
@@ -6,8 +7,6 @@
    contrast, type rhythm carried across the whole page.
    ========================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Familjen+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
-@import url('https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700,800&display=swap');
 
 :root{
   /* ---------- SURFACES ---------- */
