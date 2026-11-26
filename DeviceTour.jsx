@@ -220,7 +220,8 @@ function DeviceTour(){
         modelAt = performance.now();
         spinner.add(model);
         // compile the shaders without freezing the page, then show the device
-        const ready = () => { if (!alive) return; modelReady = true; first = true; };
+        // 26.11.2026: tell the hero's still picture of the device (Story) that the live device takes over
+        const ready = () => { if (!alive) return; modelReady = true; first = true; window.__vgDevReady = true; };
         if (renderer.compileAsync) renderer.compileAsync(scene, camera).then(ready, ready); else ready();
       }, undefined, (err) => console.error('GLB load error:', err));
 
